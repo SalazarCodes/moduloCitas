@@ -1,25 +1,918 @@
-import logo from './logo.svg';
+import React, { useState, useEffect } from 'react';
+import { Clock, Users, Scissors, Download, Upload, Bell, Plus, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import './App.css';
 
-function App() {
+// ============================================
+// CONFIGURACIÓN - Edita aquí para personalizar
+// ============================================
+
+const ESTILISTAS = [
+  { id: 1, nombre: "Ana García", especialidad: "Cabello", color: "#3B82F6" },
+  { id: 2, nombre: "María López", especialidad: "Pestañas", color: "#A855F7" },
+  { id: 3, nombre: "Luis Martínez", especialidad: "Uñas", color: "#10B981" },
+  { id: 4, nombre: "Carmen Silva", especialidad: "Uñas", color: "#F59E0B" },
+];
+
+const TRATAMIENTOS = [
+  { id: 1, nombre: "Alisado", duracion: 120, categoria: "Cabello" },
+  { id: 2, nombre: "Corte", duracion: 30, categoria: "Cabello" },
+  { id: 3, nombre: "Tinte", duracion: 90, categoria: "Cabello" },
+  { id: 4, nombre: "Extensiones de pestañas", duracion: 90, categoria: "Pestañas" },
+  { id: 5, nombre: "Relleno de pestañas", duracion: 60, categoria: "Pestañas" },
+  { id: 6, nombre: "Manicure", duracion: 60, categoria: "Uñas" },
+  { id: 7, nombre: "Pedicure", duracion: 60, categoria: "Uñas" },
+  { id: 8, nombre: "Uñas acrílicas", duracion: 90, categoria: "Uñas" },
+];
+
+const HORARIO_INICIO = 11; // 8 AM
+const HORARIO_FIN = 22; // 10 PM
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
+
+export default function SalonAppointmentSystem() {
+  const [view, setView] = useState('day');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [appointments, setAppointments] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const savedAppointments = localStorage.getItem('salon_appointments');
+    const savedClients = localStorage.getItem('salon_clients');
+    
+    if (savedAppointments) {
+      setAppointments(JSON.parse(savedAppointments));
+    }
+    if (savedClients) {
+      setClients(JSON.parse(savedClients));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('salon_appointments', JSON.stringify(appointments));
+  }, [appointments]);
+
+  useEffect(() => {
+    localStorage.setItem('salon_clients', JSON.stringify(clients));
+  }, [clients]);
+
+  useEffect(() => {
+    const checkReminders = () => {
+      const now = new Date();
+      const upcomingAppointments = appointments.filter(apt => {
+        const aptDate = new Date(apt.fecha);
+        const diffMinutes = (aptDate - now) / (1000 * 60);
+        return diffMinutes > 0 && diffMinutes <= 10 && !apt.notified;
+      });
+
+      if (upcomingAppointments.length > 0) {
+        setNotifications(upcomingAppointments);
+        setAppointments(prev => prev.map(apt => {
+          if (upcomingAppointments.find(ua => ua.id === apt.id)) {
+            return { ...apt, notified: true };
+          }
+          return apt;
+        }));
+      }
+    };
+
+    checkReminders();
+    const interval = setInterval(checkReminders, 60000);
+    return () => clearInterval(interval);
+  }, [appointments]);
+
+  const formatTime = (date) => {
+    return new Date(date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  const getEstilistaById = (id) => ESTILISTAS.find(e => e.id === id);
+  const getClientById = (id) => clients.find(c => c.id === id);
+
+  const isTimeSlotAvailable = (estilistaId, fecha, duracion, excludeId = null) => {
+    const startTime = new Date(fecha);
+    const endTime = new Date(startTime.getTime() + duracion * 60000);
+
+    return !appointments.some(apt => {
+      if (apt.id === excludeId) return false;
+      if (apt.estilistaId !== estilistaId) return false;
+
+      const aptStart = new Date(apt.fecha);
+      const aptEnd = new Date(aptStart.getTime() + apt.duracion * 60000);
+
+      return (startTime < aptEnd && endTime > aptStart);
+    });
+  };
+
+  const exportData = () => {
+    const data = {
+      appointments,
+      clients,
+      exportDate: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup-salon-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+  };
+
+  const importData = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (window.confirm('¿Deseas reemplazar todos los datos actuales?')) {
+            setAppointments(data.appointments || []);
+            setClients(data.clients || []);
+            alert('Datos importados correctamente');
+          }
+        } catch (error) {
+          alert('Error al importar el archivo');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-content">
+          <div className="header-title">
+            <Scissors className="header-icon" />
+            <h1>Sistema de Citas</h1>
+          </div>
+          <div className="header-actions">
+            <button onClick={exportData} className="btn btn-success">
+              <Download size={16} />
+              Exportar
+            </button>
+            <label className="btn btn-primary">
+              <Upload size={16} />
+              Importar
+              <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
+            </label>
+          </div>
+        </div>
       </header>
+
+      {notifications.length > 0 && (
+        <div className="notifications-container">
+          {notifications.map(apt => {
+            const estilista = getEstilistaById(apt.estilistaId);
+            const client = getClientById(apt.clienteId);
+            return (
+              <div key={apt.id} className="notification">
+                <Bell size={20} />
+                <div className="notification-content">
+                  <p className="notification-title">Cita en 10 minutos</p>
+                  <p className="notification-text">{estilista?.nombre} - {client?.nombre}</p>
+                  <p className="notification-time">{formatTime(apt.fecha)}</p>
+                </div>
+                <button
+                  onClick={() => setNotifications(prev => prev.filter(n => n.id !== apt.id))}
+                  className="notification-close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <nav className="app-nav">
+        <div className="nav-content">
+          <div className="view-buttons">
+            <button
+              onClick={() => setView('day')}
+              className={`btn ${view === 'day' ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              Día
+            </button>
+            <button
+              onClick={() => setView('week')}
+              className={`btn ${view === 'week' ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              Semana
+            </button>
+            <button
+              onClick={() => setView('month')}
+              className={`btn ${view === 'month' ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              Mes
+            </button>
+          </div>
+          <div className="date-navigation">
+            <button
+              onClick={() => {
+                const newDate = new Date(currentDate);
+                if (view === 'day') newDate.setDate(newDate.getDate() - 1);
+                else if (view === 'week') newDate.setDate(newDate.getDate() - 7);
+                else newDate.setMonth(newDate.getMonth() - 1);
+                setCurrentDate(newDate);
+              }}
+              className="btn btn-icon"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="current-date">{formatDate(currentDate)}</span>
+            <button
+              onClick={() => {
+                const newDate = new Date(currentDate);
+                if (view === 'day') newDate.setDate(newDate.getDate() + 1);
+                else if (view === 'week') newDate.setDate(newDate.getDate() + 7);
+                else newDate.setMonth(newDate.getMonth() + 1);
+                setCurrentDate(newDate);
+              }}
+              className="btn btn-icon"
+            >
+              <ChevronRight size={20} />
+            </button>
+            <button
+              onClick={() => setCurrentDate(new Date())}
+              className="btn btn-secondary"
+            >
+              Hoy
+            </button>
+          </div>
+          <div className="action-buttons">
+            <button
+              onClick={() => setShowClientModal(true)}
+              className="btn btn-purple"
+            >
+              <Users size={16} />
+              Clientes
+            </button>
+            <button
+              onClick={() => {
+                setEditingAppointment(null);
+                setShowModal(true);
+              }}
+              className="btn btn-primary"
+            >
+              <Plus size={16} />
+              Nueva Cita
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="main-content">
+        {view === 'day' && <DayView currentDate={currentDate} appointments={appointments} setEditingAppointment={setEditingAppointment} setShowModal={setShowModal} />}
+        {view === 'week' && <WeekView currentDate={currentDate} appointments={appointments} setEditingAppointment={setEditingAppointment} setShowModal={setShowModal} />}
+        {view === 'month' && <MonthView currentDate={currentDate} appointments={appointments} setEditingAppointment={setEditingAppointment} setShowModal={setShowModal} />}
+      </main>
+
+      {showModal && (
+        <AppointmentModal
+          appointment={editingAppointment}
+          onClose={() => {
+            setShowModal(false);
+            setEditingAppointment(null);
+          }}
+          onSave={(apt) => {
+            if (editingAppointment) {
+              setAppointments(prev => prev.map(a => a.id === apt.id ? apt : a));
+            } else {
+              setAppointments(prev => [...prev, { ...apt, id: Date.now(), notified: false }]);
+            }
+            setShowModal(false);
+            setEditingAppointment(null);
+          }}
+          onDelete={(id) => {
+            setAppointments(prev => prev.filter(a => a.id !== id));
+            setShowModal(false);
+            setEditingAppointment(null);
+          }}
+          clients={clients}
+          onAddClient={(client) => {
+            setClients(prev => [...prev, { ...client, id: Date.now() }]);
+            return Date.now();
+          }}
+          isTimeSlotAvailable={isTimeSlotAvailable}
+        />
+      )}
+
+      {showClientModal && (
+        <ClientModal
+          clients={clients}
+          onClose={() => setShowClientModal(false)}
+          onSave={(client) => {
+            if (client.id) {
+              setClients(prev => prev.map(c => c.id === client.id ? client : c));
+            } else {
+              setClients(prev => [...prev, { ...client, id: Date.now() }]);
+            }
+          }}
+          onDelete={(id) => {
+            setClients(prev => prev.filter(c => c.id !== id));
+          }}
+        />
+      )}
     </div>
   );
 }
 
-export default App;
+function DayView({ currentDate, appointments, setEditingAppointment, setShowModal }) {
+  const hours = Array.from({ length: HORARIO_FIN - HORARIO_INICIO }, (_, i) => i + HORARIO_INICIO);
+  
+  const dayAppointments = appointments.filter(apt => {
+    const aptDate = new Date(apt.fecha);
+    return aptDate.toDateString() === currentDate.toDateString();
+  }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+  return (
+    <div className="view-card">
+      <h2>Agenda del Día</h2>
+      <div className="day-view">
+        {hours.map(hour => {
+          const hourAppointments = dayAppointments.filter(apt => {
+            const aptHour = new Date(apt.fecha).getHours();
+            return aptHour === hour;
+          });
+
+          return (
+            <div key={hour} className="hour-row">
+              <div className="hour-label">
+                {hour.toString().padStart(2, '0')}:00
+              </div>
+              <div className="hour-content">
+                {hourAppointments.length > 0 ? (
+                  hourAppointments.map(apt => (
+                    <AppointmentCard
+                      key={apt.id}
+                      appointment={apt}
+                      onClick={() => {
+                        setEditingAppointment(apt);
+                        setShowModal(true);
+                      }}
+                    />
+                  ))
+                ) : (
+                  <div className="no-appointments">Sin citas</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function WeekView({ currentDate, appointments, setEditingAppointment, setShowModal }) {
+  const startOfWeek = new Date(currentDate);
+  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+  
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(startOfWeek);
+    day.setDate(startOfWeek.getDate() + i);
+    return day;
+  });
+
+  return (
+    <div className="view-card">
+      <h2>Agenda de la Semana</h2>
+      <div className="week-view">
+        {days.map((day, index) => {
+          const dayAppointments = appointments.filter(apt => {
+            const aptDate = new Date(apt.fecha);
+            return aptDate.toDateString() === day.toDateString();
+          }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+          const isToday = day.toDateString() === new Date().toDateString();
+
+          return (
+            <div key={index} className={`week-day ${isToday ? 'today' : ''}`}>
+              <div className="week-day-header">
+                <div className="week-day-name">
+                  {day.toLocaleDateString('es-ES', { weekday: 'short' })}
+                </div>
+                <div className="week-day-number">
+                  {day.getDate()}
+                </div>
+              </div>
+              <div className="week-day-content">
+                {dayAppointments.map(apt => (
+                  <div
+                    key={apt.id}
+                    onClick={() => {
+                      setEditingAppointment(apt);
+                      setShowModal(true);
+                    }}
+                  >
+                    <AppointmentCard appointment={apt} compact />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MonthView({ currentDate, appointments, setEditingAppointment, setShowModal }) {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  
+  const firstDay = new Date(year, month, 1);
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - startDate.getDay());
+  
+  const days = [];
+  const current = new Date(startDate);
+  
+  while (days.length < 35) {
+    days.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  return (
+    <div className="view-card">
+      <h2>Calendario Mensual</h2>
+      <div className="month-view">
+        <div className="month-header">
+          {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
+            <div key={day} className="month-day-name">{day}</div>
+          ))}
+        </div>
+        <div className="month-grid">
+          {days.map((day, index) => {
+            const dayAppointments = appointments.filter(apt => {
+              const aptDate = new Date(apt.fecha);
+              return aptDate.toDateString() === day.toDateString();
+            });
+
+            const isCurrentMonth = day.getMonth() === month;
+            const isToday = day.toDateString() === new Date().toDateString();
+
+            return (
+              <div
+                key={index}
+                className={`month-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`}
+              >
+                <div className="month-day-number">{day.getDate()}</div>
+                <div className="month-day-appointments">
+                  {dayAppointments.slice(0, 3).map(apt => {
+                    const estilista = ESTILISTAS.find(e => e.id === apt.estilistaId);
+                    return (
+                      <div
+                        key={apt.id}
+                        onClick={() => {
+                          setEditingAppointment(apt);
+                          setShowModal(true);
+                        }}
+                        className="month-appointment"
+                        style={{
+                          backgroundColor: estilista?.color + '30',
+                          borderLeft: `3px solid ${estilista?.color}`
+                        }}
+                      >
+                        {new Date(apt.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    );
+                  })}
+                  {dayAppointments.length > 3 && (
+                    <div className="month-more">+{dayAppointments.length - 3} más</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AppointmentCard({ appointment, onClick, compact = false }) {
+  const estilista = ESTILISTAS.find(e => e.id === appointment.estilistaId);
+  const tratamiento = TRATAMIENTOS.find(t => t.id === appointment.tratamientoId);
+  const client = JSON.parse(localStorage.getItem('salon_clients') || '[]').find(c => c.id === appointment.clienteId);
+
+  return (
+    <div
+      onClick={onClick}
+      className="appointment-card"
+      style={{
+        backgroundColor: estilista?.color + '20',
+        borderLeft: `4px solid ${estilista?.color}`
+      }}
+    >
+      <div className="appointment-estilista" style={{ color: estilista?.color }}>
+        {estilista?.nombre}
+      </div>
+      {!compact && (
+        <>
+          <div className="appointment-client">{client?.nombre}</div>
+          <div className="appointment-treatment">{tratamiento?.nombre}</div>
+          <div className="appointment-time">
+            <Clock size={14} />
+            {new Date(appointment.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {tratamiento?.duracion} min
+          </div>
+        </>
+      )}
+      {compact && (
+        <div className="appointment-time-compact" style={{ color: estilista?.color }}>
+          {new Date(appointment.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onAddClient, isTimeSlotAvailable }) {
+  const [formData, setFormData] = useState(appointment || {
+    clienteId: '',
+    estilistaId: '',
+    tratamientoId: '',
+    fecha: new Date().toISOString().slice(0, 16),
+    notas: ''
+  });
+
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClient, setNewClient] = useState({ nombre: '', telefono: '', email: '' });
+
+  // Obtener info del cliente seleccionado
+  const selectedClient = formData.clienteId ? clients.find(c => c.id === parseInt(formData.clienteId)) : null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(formData.tratamientoId));
+    
+    if (!isTimeSlotAvailable(
+      parseInt(formData.estilistaId),
+      formData.fecha,
+      tratamiento.duracion,
+      appointment?.id
+    )) {
+      alert('Este horario no está disponible para el estilista seleccionado');
+      return;
+    }
+
+    onSave({
+      ...formData,
+      clienteId: parseInt(formData.clienteId),
+      estilistaId: parseInt(formData.estilistaId),
+      tratamientoId: parseInt(formData.tratamientoId),
+      duracion: tratamiento.duracion
+    });
+  };
+
+  const handleNewClient = () => {
+    if (!newClient.nombre || !newClient.telefono) {
+      alert('Nombre y teléfono son obligatorios');
+      return;
+    }
+
+    const clientId = onAddClient(newClient);
+    setFormData({ ...formData, clienteId: clientId });
+    setShowNewClient(false);
+    setNewClient({ nombre: '', telefono: '', email: '' });
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <div className="modal-header">
+          <h2>{appointment ? 'Editar Cita' : 'Nueva Cita'}</h2>
+          <button onClick={onClose} className="modal-close">
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="modal-body">
+          <div className="form-group">
+            <label>Cliente</label>
+            {!showNewClient ? (
+              <>
+                <div className="input-with-button">
+                  <select
+                    value={formData.clienteId}
+                    onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })}
+                    required
+                  >
+                    <option value="">Seleccionar cliente</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>{client.nombre}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewClient(true)}
+                    className="btn btn-success btn-sm"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+                {selectedClient && (
+                  <div className="client-info-display">
+                    <p className="client-phone">📱 {selectedClient.telefono}</p>
+                    {selectedClient.email && <p className="client-email">✉️ {selectedClient.email}</p>}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="new-client-form">
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  value={newClient.nombre}
+                  onChange={(e) => setNewClient({ ...newClient, nombre: e.target.value })}
+                />
+                <input
+                  type="tel"
+                  placeholder="Teléfono"
+                  value={newClient.telefono}
+                  onChange={(e) => setNewClient({ ...newClient, telefono: e.target.value })}
+                />
+                <input
+                  type="email"
+                  placeholder="Email (opcional)"
+                  value={newClient.email}
+                  onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                />
+                <div className="button-group">
+                  <button
+                    type="button"
+                    onClick={handleNewClient}
+                    className="btn btn-success"
+                  >
+                    Guardar Cliente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewClient(false)}
+                    className="btn btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label>Estilista</label>
+            <select
+              value={formData.estilistaId}
+              onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
+              required
+            >
+              <option value="">Seleccionar estilista</option>
+              {ESTILISTAS.map(estilista => (
+                <option key={estilista.id} value={estilista.id}>
+                  {estilista.nombre} - {estilista.especialidad}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Tratamiento</label>
+            <select
+              value={formData.tratamientoId}
+              onChange={(e) => setFormData({ ...formData, tratamientoId: e.target.value })}
+              required
+            >
+              <option value="">Seleccionar tratamiento</option>
+              {TRATAMIENTOS.map(tratamiento => (
+                <option key={tratamiento.id} value={tratamiento.id}>
+                  {tratamiento.nombre} ({tratamiento.duracion} min) - {tratamiento.categoria}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Fecha y Hora</label>
+            <input
+              type="datetime-local"
+              value={formData.fecha}
+              onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Notas (opcional)</label>
+            <textarea
+              value={formData.notas}
+              onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
+              rows="3"
+              placeholder="Notas adicionales..."
+            />
+          </div>
+
+          <div className="modal-footer">
+            {appointment && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('¿Estás seguro de eliminar esta cita?')) {
+                    onDelete(appointment.id);
+                  }
+                }}
+                className="btn btn-danger"
+              >
+                Eliminar
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-secondary"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+            >
+              {appointment ? 'Actualizar' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ClientModal({ clients, onClose, onSave, onDelete }) {
+  const [editingClient, setEditingClient] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({ nombre: '', telefono: '', email: '', notas: '' });
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredClients = clients.filter(client =>
+    client.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.telefono.includes(searchTerm)
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(editingClient ? { ...formData, id: editingClient.id } : formData);
+    setShowForm(false);
+    setEditingClient(null);
+    setFormData({ nombre: '', telefono: '', email: '', notas: '' });
+  };
+
+  const handleEdit = (client) => {
+    setEditingClient(client);
+    setFormData(client);
+    setShowForm(true);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal modal-large">
+        <div className="modal-header">
+          <h2>Gestión de Clientes</h2>
+          <button onClick={onClose} className="modal-close">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="modal-body">
+          {!showForm ? (
+            <>
+              <div className="search-bar">
+                <div className="search-input">
+                  <Search size={20} />
+                  <input
+                    type="text"
+                    placeholder="Buscar cliente..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setEditingClient(null);
+                    setFormData({ nombre: '', telefono: '', email: '', notas: '' });
+                  }}
+                  className="btn btn-primary"
+                >
+                  <Plus size={16} />
+                  Nuevo
+                </button>
+              </div>
+
+              <div className="client-list">
+                {filteredClients.length === 0 ? (
+                  <div className="empty-state">No hay clientes registrados</div>
+                ) : (
+                  filteredClients.map(client => (
+                    <div key={client.id} className="client-card">
+                      <div className="client-info">
+                        <h3>{client.nombre}</h3>
+                        <p>📱 {client.telefono}</p>
+                        {client.email && <p>✉️ {client.email}</p>}
+                        {client.notas && <p className="client-notes">{client.notas}</p>}
+                      </div>
+                      <div className="client-actions">
+                        <button
+                          onClick={() => handleEdit(client)}
+                          className="btn btn-sm btn-primary"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm('¿Eliminar este cliente?')) {
+                              onDelete(client.id);
+                            }
+                          }}
+                          className="btn btn-sm btn-danger"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit} className="client-form">
+              <div className="form-group">
+                <label>Nombre *</label>
+                <input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Teléfono *</label>
+                <input
+                  type="tel"
+                  value={formData.telefono}
+                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Notas</label>
+                <textarea
+                  value={formData.notas}
+                  onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
+                  rows="3"
+                  placeholder="Preferencias, alergias, etc..."
+                />
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingClient(null);
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                >
+                  {editingClient ? 'Actualizar' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
