@@ -7,25 +7,35 @@ import './App.css';
 // ============================================
 
 const ESTILISTAS = [
-  { id: 1, nombre: "Ana García", especialidad: "Cabello", color: "#3B82F6" },
-  { id: 2, nombre: "María López", especialidad: "Pestañas", color: "#A855F7" },
-  { id: 3, nombre: "Luis Martínez", especialidad: "Uñas", color: "#10B981" },
-  { id: 4, nombre: "Carmen Silva", especialidad: "Uñas", color: "#F59E0B" },
+  { id: 1, nombre: "Noelia", especialidad: "Cabello", color: "#3B82F6" },
+  { id: 2, nombre: "Kathy", especialidad: "Tratamientos corporales", color: "#A855F7" },
+  { id: 3, nombre: "Yazmine", especialidad: "Uñas", color: "#10B981" },
+  { id: 4, nombre: "Katiusca", especialidad: "Todo terreno", color: "#F59E0B" },
 ];
 
 const TRATAMIENTOS = [
-  { id: 1, nombre: "Alisado", duracion: 120, categoria: "Cabello" },
-  { id: 2, nombre: "Corte", duracion: 30, categoria: "Cabello" },
-  { id: 3, nombre: "Tinte", duracion: 90, categoria: "Cabello" },
-  { id: 4, nombre: "Extensiones de pestañas", duracion: 90, categoria: "Pestañas" },
-  { id: 5, nombre: "Relleno de pestañas", duracion: 60, categoria: "Pestañas" },
-  { id: 6, nombre: "Manicure", duracion: 60, categoria: "Uñas" },
-  { id: 7, nombre: "Pedicure", duracion: 60, categoria: "Uñas" },
-  { id: 8, nombre: "Uñas acrílicas", duracion: 90, categoria: "Uñas" },
+  { id: 1, nombre: "Botox Capilar", duracion: 90, categoria: "Cabello" },
+  { id: 2, nombre: "Tinte + botox", duracion: 120, categoria: "Cabello" },
+  { id: 3, nombre: "Tinte + tratamiento", duracion: 90, categoria: "Cabello" },
+  { id: 4, nombre: "Tinte", duracion: 70, categoria: "Cabello" },
+  { id: 5, nombre: "Tratamiento", duracion: 60, categoria: "Cabello" },
+  { id: 6, nombre: "Corte de puntas", duracion: 20, categoria: "Cabello" },
+  { id: 7, nombre: "Corte fama", duracion: 30, categoria: "Cabello" },
+  { id: 8, nombre: "Corte + lavado", duracion: 40, categoria: "Cabello" },
+  { id: 9, nombre: "Corte + lavado + tratamiento", duracion: 70, categoria: "Cabello" },
+  { id: 10, nombre: "Corte + lavado + planchado", duracion: 70, categoria: "Cabello" },
+  { id: 11, nombre: "Mechas bayalage", duracion: 240, categoria: "Cabello" },
+  { id: 12, nombre: "Mechas general", duracion: 300, categoria: "Cabello" },
+  { id: 13, nombre: "Mechas creativas", duracion: 300, categoria: "Cabello" },
+  { id: 14, nombre: "Alisado organico", duracion: 120, categoria: "Cabello" },
+  { id: 15, nombre: "Alisado japones", duracion: 240, categoria: "Cabello" },
+  { id: 16, nombre: "Alisado dual", duracion: 240, categoria: "Cabello" },
+  { id: 17, nombre: "Alisado brasilero", duracion: 90, categoria: "Cabello" },
+  { id: 18, nombre: "Lavado + planchado", duracion: 90, categoria: "Cabello" },
 ];
 
-const HORARIO_INICIO = 11; // 8 AM
-const HORARIO_FIN = 22; // 10 PM
+const HORARIO_INICIO = 10; // 8 AM
+const HORARIO_FIN = 21; // 10 PM
 
 // ============================================
 // COMPONENTE PRINCIPAL
@@ -35,27 +45,35 @@ export default function SalonAppointmentSystem() {
   const [view, setView] = useState('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState([]);
+  const [unavailabilities, setUnavailabilities] = useState([]);
   const [clients, setClients] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
+  const [showUnavailabilityModal, setShowUnavailabilityModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
+  const [editingUnavailability, setEditingUnavailability] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [lastBackupDate, setLastBackupDate] = useState(null);
 
   useEffect(() => {
     const savedAppointments = localStorage.getItem('salon_appointments');
+    const savedUnavailabilities = localStorage.getItem('salon_unavailabilities');
     const savedClients = localStorage.getItem('salon_clients');
+    const savedLastBackup = localStorage.getItem('salon_last_backup');
     
-    if (savedAppointments) {
-      setAppointments(JSON.parse(savedAppointments));
-    }
-    if (savedClients) {
-      setClients(JSON.parse(savedClients));
-    }
+    if (savedAppointments) setAppointments(JSON.parse(savedAppointments));
+    if (savedUnavailabilities) setUnavailabilities(JSON.parse(savedUnavailabilities));
+    if (savedClients) setClients(JSON.parse(savedClients));
+    if (savedLastBackup) setLastBackupDate(savedLastBackup);
   }, []);
 
   useEffect(() => {
     localStorage.setItem('salon_appointments', JSON.stringify(appointments));
   }, [appointments]);
+
+  useEffect(() => {
+    localStorage.setItem('salon_unavailabilities', JSON.stringify(unavailabilities));
+  }, [unavailabilities]);
 
   useEffect(() => {
     localStorage.setItem('salon_clients', JSON.stringify(clients));
@@ -86,6 +104,24 @@ export default function SalonAppointmentSystem() {
     return () => clearInterval(interval);
   }, [appointments]);
 
+  useEffect(() => {
+    const checkAutoBackup = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentDate = now.toDateString();
+      
+      if (currentHour === 22 && lastBackupDate !== currentDate) {
+        exportData();
+        setLastBackupDate(currentDate);
+        localStorage.setItem('salon_last_backup', currentDate);
+      }
+    };
+
+    checkAutoBackup();
+    const interval = setInterval(checkAutoBackup, 60000);
+    return () => clearInterval(interval);
+  }, [lastBackupDate, appointments, clients, unavailabilities]);
+
   const formatTime = (date) => {
     return new Date(date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   };
@@ -97,24 +133,10 @@ export default function SalonAppointmentSystem() {
   const getEstilistaById = (id) => ESTILISTAS.find(e => e.id === id);
   const getClientById = (id) => clients.find(c => c.id === id);
 
-  const isTimeSlotAvailable = (estilistaId, fecha, duracion, excludeId = null) => {
-    const startTime = new Date(fecha);
-    const endTime = new Date(startTime.getTime() + duracion * 60000);
-
-    return !appointments.some(apt => {
-      if (apt.id === excludeId) return false;
-      if (apt.estilistaId !== estilistaId) return false;
-
-      const aptStart = new Date(apt.fecha);
-      const aptEnd = new Date(aptStart.getTime() + apt.duracion * 60000);
-
-      return (startTime < aptEnd && endTime > aptStart);
-    });
-  };
-
   const exportData = () => {
     const data = {
       appointments,
+      unavailabilities,
       clients,
       exportDate: new Date().toISOString()
     };
@@ -135,6 +157,7 @@ export default function SalonAppointmentSystem() {
           const data = JSON.parse(e.target.result);
           if (window.confirm('¿Deseas reemplazar todos los datos actuales?')) {
             setAppointments(data.appointments || []);
+            setUnavailabilities(data.unavailabilities || []);
             setClients(data.clients || []);
             alert('Datos importados correctamente');
           }
@@ -152,7 +175,7 @@ export default function SalonAppointmentSystem() {
         <div className="header-content">
           <div className="header-title">
             <Scissors className="header-icon" />
-            <h1>Sistema de Citas</h1>
+            <h1>Citas Musa</h1>
           </div>
           <div className="header-actions">
             <button onClick={exportData} className="btn btn-success">
@@ -196,22 +219,13 @@ export default function SalonAppointmentSystem() {
       <nav className="app-nav">
         <div className="nav-content">
           <div className="view-buttons">
-            <button
-              onClick={() => setView('day')}
-              className={`btn ${view === 'day' ? 'btn-primary' : 'btn-secondary'}`}
-            >
+            <button onClick={() => setView('day')} className={`btn ${view === 'day' ? 'btn-primary' : 'btn-secondary'}`}>
               Día
             </button>
-            <button
-              onClick={() => setView('week')}
-              className={`btn ${view === 'week' ? 'btn-primary' : 'btn-secondary'}`}
-            >
+            <button onClick={() => setView('week')} className={`btn ${view === 'week' ? 'btn-primary' : 'btn-secondary'}`}>
               Semana
             </button>
-            <button
-              onClick={() => setView('month')}
-              className={`btn ${view === 'month' ? 'btn-primary' : 'btn-secondary'}`}
-            >
+            <button onClick={() => setView('month')} className={`btn ${view === 'month' ? 'btn-primary' : 'btn-secondary'}`}>
               Mes
             </button>
           </div>
@@ -241,39 +255,60 @@ export default function SalonAppointmentSystem() {
             >
               <ChevronRight size={20} />
             </button>
-            <button
-              onClick={() => setCurrentDate(new Date())}
-              className="btn btn-secondary"
-            >
+            <button onClick={() => setCurrentDate(new Date())} className="btn btn-secondary">
               Hoy
             </button>
           </div>
           <div className="action-buttons">
-            <button
-              onClick={() => setShowClientModal(true)}
-              className="btn btn-purple"
-            >
+            <button onClick={() => setShowUnavailabilityModal(true)} className="btn btn-danger">
+              <X size={16} />
+              Crear ausencia
+            </button>
+            <button onClick={() => setShowClientModal(true)} className="btn btn-purple">
               <Users size={16} />
               Clientes
             </button>
-            <button
-              onClick={() => {
-                setEditingAppointment(null);
-                setShowModal(true);
-              }}
-              className="btn btn-primary"
-            >
+            <button onClick={() => { setEditingAppointment(null); setShowModal(true); }} className="btn btn-primary">
               <Plus size={16} />
               Nueva Cita
             </button>
           </div>
         </div>
       </nav>
-
       <main className="main-content">
-        {view === 'day' && <DayView currentDate={currentDate} appointments={appointments} setEditingAppointment={setEditingAppointment} setShowModal={setShowModal} />}
-        {view === 'week' && <WeekView currentDate={currentDate} appointments={appointments} setEditingAppointment={setEditingAppointment} setShowModal={setShowModal} />}
-        {view === 'month' && <MonthView currentDate={currentDate} appointments={appointments} setEditingAppointment={setEditingAppointment} setShowModal={setShowModal} />}
+        {view === 'day' && (
+          <DayView
+            currentDate={currentDate}
+            appointments={appointments}
+            unavailabilities={unavailabilities}
+            setEditingAppointment={setEditingAppointment}
+            setEditingUnavailability={setEditingUnavailability}
+            setShowModal={setShowModal}
+            setShowUnavailabilityModal={setShowUnavailabilityModal}
+          />
+        )}
+        {view === 'week' && (
+          <WeekView
+            currentDate={currentDate}
+            appointments={appointments}
+            unavailabilities={unavailabilities}
+            setEditingAppointment={setEditingAppointment}
+            setEditingUnavailability={setEditingUnavailability}
+            setShowModal={setShowModal}
+            setShowUnavailabilityModal={setShowUnavailabilityModal}
+          />
+        )}
+        {view === 'month' && (
+          <MonthView
+            currentDate={currentDate}
+            appointments={appointments}
+            unavailabilities={unavailabilities}
+            setEditingAppointment={setEditingAppointment}
+            setEditingUnavailability={setEditingUnavailability}
+            setShowModal={setShowModal}
+            setShowUnavailabilityModal={setShowUnavailabilityModal}
+          />
+        )}
       </main>
 
       {showModal && (
@@ -302,7 +337,30 @@ export default function SalonAppointmentSystem() {
             setClients(prev => [...prev, { ...client, id: Date.now() }]);
             return Date.now();
           }}
-          isTimeSlotAvailable={isTimeSlotAvailable}
+        />
+      )}
+
+      {showUnavailabilityModal && (
+        <UnavailabilityModal
+          unavailability={editingUnavailability}
+          onClose={() => {
+            setShowUnavailabilityModal(false);
+            setEditingUnavailability(null);
+          }}
+          onSave={(unav) => {
+            if (editingUnavailability) {
+              setUnavailabilities(prev => prev.map(u => u.id === unav.id ? unav : u));
+            } else {
+              setUnavailabilities(prev => [...prev, { ...unav, id: Date.now() }]);
+            }
+            setShowUnavailabilityModal(false);
+            setEditingUnavailability(null);
+          }}
+          onDelete={(id) => {
+            setUnavailabilities(prev => prev.filter(u => u.id !== id));
+            setShowUnavailabilityModal(false);
+            setEditingUnavailability(null);
+          }}
         />
       )}
 
@@ -326,13 +384,18 @@ export default function SalonAppointmentSystem() {
   );
 }
 
-function DayView({ currentDate, appointments, setEditingAppointment, setShowModal }) {
+function DayView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const hours = Array.from({ length: HORARIO_FIN - HORARIO_INICIO }, (_, i) => i + HORARIO_INICIO);
   
   const dayAppointments = appointments.filter(apt => {
     const aptDate = new Date(apt.fecha);
     return aptDate.toDateString() === currentDate.toDateString();
   }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+  const dayUnavailabilities = unavailabilities.filter(unav => {
+    const unavDate = new Date(unav.fechaInicio);
+    return unavDate.toDateString() === currentDate.toDateString();
+  });
 
   return (
     <div className="view-card">
@@ -344,24 +407,43 @@ function DayView({ currentDate, appointments, setEditingAppointment, setShowModa
             return aptHour === hour;
           });
 
+          const hourUnavailabilities = dayUnavailabilities.filter(unav => {
+            const startHour = new Date(unav.fechaInicio).getHours();
+            const endHour = new Date(unav.fechaFin).getHours();
+            return hour >= startHour && hour < endHour;
+          });
+
           return (
             <div key={hour} className="hour-row">
               <div className="hour-label">
                 {hour.toString().padStart(2, '0')}:00
               </div>
               <div className="hour-content">
-                {hourAppointments.length > 0 ? (
-                  hourAppointments.map(apt => (
-                    <AppointmentCard
-                      key={apt.id}
-                      appointment={apt}
-                      onClick={() => {
-                        setEditingAppointment(apt);
-                        setShowModal(true);
-                      }}
-                    />
-                  ))
-                ) : (
+                {(hourUnavailabilities.length > 0 || hourAppointments.length > 0) && (
+                  <div className="hour-items-grid">
+                    {hourUnavailabilities.map(unav => (
+                      <UnavailabilityCard
+                        key={unav.id}
+                        unavailability={unav}
+                        onClick={() => {
+                          setEditingUnavailability(unav);
+                          setShowUnavailabilityModal(true);
+                        }}
+                      />
+                    ))}
+                    {hourAppointments.map(apt => (
+                      <AppointmentCard
+                        key={apt.id}
+                        appointment={apt}
+                        onClick={() => {
+                          setEditingAppointment(apt);
+                          setShowModal(true);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+                {!hourUnavailabilities.length && !hourAppointments.length && (
                   <div className="no-appointments">Sin citas</div>
                 )}
               </div>
@@ -373,7 +455,7 @@ function DayView({ currentDate, appointments, setEditingAppointment, setShowModa
   );
 }
 
-function WeekView({ currentDate, appointments, setEditingAppointment, setShowModal }) {
+function WeekView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
   
@@ -393,6 +475,11 @@ function WeekView({ currentDate, appointments, setEditingAppointment, setShowMod
             return aptDate.toDateString() === day.toDateString();
           }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
+          const dayUnavailabilities = unavailabilities.filter(unav => {
+            const unavDate = new Date(unav.fechaInicio);
+            return unavDate.toDateString() === day.toDateString();
+          });
+
           const isToday = day.toDateString() === new Date().toDateString();
 
           return (
@@ -406,6 +493,17 @@ function WeekView({ currentDate, appointments, setEditingAppointment, setShowMod
                 </div>
               </div>
               <div className="week-day-content">
+                {dayUnavailabilities.map(unav => (
+                  <div
+                    key={unav.id}
+                    onClick={() => {
+                      setEditingUnavailability(unav);
+                      setShowUnavailabilityModal(true);
+                    }}
+                  >
+                    <UnavailabilityCard unavailability={unav} compact />
+                  </div>
+                ))}
                 {dayAppointments.map(apt => (
                   <div
                     key={apt.id}
@@ -426,7 +524,7 @@ function WeekView({ currentDate, appointments, setEditingAppointment, setShowMod
   );
 }
 
-function MonthView({ currentDate, appointments, setEditingAppointment, setShowModal }) {
+function MonthView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   
@@ -458,6 +556,11 @@ function MonthView({ currentDate, appointments, setEditingAppointment, setShowMo
               return aptDate.toDateString() === day.toDateString();
             });
 
+            const dayUnavailabilities = unavailabilities.filter(unav => {
+              const unavDate = new Date(unav.fechaInicio);
+              return unavDate.toDateString() === day.toDateString();
+            });
+
             const isCurrentMonth = day.getMonth() === month;
             const isToday = day.toDateString() === new Date().toDateString();
 
@@ -468,6 +571,25 @@ function MonthView({ currentDate, appointments, setEditingAppointment, setShowMo
               >
                 <div className="month-day-number">{day.getDate()}</div>
                 <div className="month-day-appointments">
+                  {dayUnavailabilities.slice(0, 2).map(unav => {
+                    const estilista = ESTILISTAS.find(e => e.id === unav.estilistaId);
+                    return (
+                      <div
+                        key={unav.id}
+                        onClick={() => {
+                          setEditingUnavailability(unav);
+                          setShowUnavailabilityModal(true);
+                        }}
+                        className="month-appointment"
+                        style={{
+                          backgroundColor: '#fee2e2',
+                          borderLeft: '3px solid #dc2626'
+                        }}
+                      >
+                        {estilista?.nombre} - Indisponible
+                      </div>
+                    );
+                  })}
                   {dayAppointments.slice(0, 3).map(apt => {
                     const estilista = ESTILISTAS.find(e => e.id === apt.estilistaId);
                     return (
@@ -487,8 +609,8 @@ function MonthView({ currentDate, appointments, setEditingAppointment, setShowMo
                       </div>
                     );
                   })}
-                  {dayAppointments.length > 3 && (
-                    <div className="month-more">+{dayAppointments.length - 3} más</div>
+                  {(dayAppointments.length + dayUnavailabilities.length) > 3 && (
+                    <div className="month-more">+{(dayAppointments.length + dayUnavailabilities.length) - 3} más</div>
                   )}
                 </div>
               </div>
@@ -536,7 +658,152 @@ function AppointmentCard({ appointment, onClick, compact = false }) {
   );
 }
 
-function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onAddClient, isTimeSlotAvailable }) {
+function UnavailabilityCard({ unavailability, onClick, compact = false }) {
+  const estilista = ESTILISTAS.find(e => e.id === unavailability.estilistaId);
+
+  return (
+    <div
+      onClick={onClick}
+      className="appointment-card unavailability-card"
+      style={{
+        backgroundColor: '#fee2e2',
+        borderLeft: '4px solid #dc2626'
+      }}
+    >
+      <div className="appointment-estilista" style={{ color: '#dc2626' }}>
+        {estilista?.nombre} - Ausente
+      </div>
+      {!compact && (
+        <>
+          <div className="appointment-treatment">{unavailability.motivo || 'Sin motivo especificado'}</div>
+          <div className="appointment-time">
+            <Clock size={14} />
+            {new Date(unavailability.fechaInicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {new Date(unavailability.fechaFin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </>
+      )}
+      {compact && (
+        <div className="appointment-time-compact" style={{ color: '#dc2626' }}>
+          {new Date(unavailability.fechaInicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {new Date(unavailability.fechaFin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UnavailabilityModal({ unavailability, onClose, onSave, onDelete }) {
+  const [formData, setFormData] = useState(unavailability || {
+    estilistaId: '',
+    fechaInicio: new Date().toISOString().slice(0, 16),
+    fechaFin: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
+    motivo: ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (new Date(formData.fechaFin) <= new Date(formData.fechaInicio)) {
+      alert('La fecha de fin debe ser posterior a la fecha de inicio');
+      return;
+    }
+
+    onSave({
+      ...formData,
+      estilistaId: parseInt(formData.estilistaId)
+    });
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <div className="modal-header">
+          <h2>{unavailability ? 'Editar Ausencia' : 'Nueva Ausencia'}</h2>
+          <button onClick={onClose} className="modal-close">
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="modal-body">
+          <div className="form-group">
+            <label>Estilista</label>
+            <select
+              value={formData.estilistaId}
+              onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
+              required
+            >
+              <option value="">Seleccionar empleado</option>
+              {ESTILISTAS.map(estilista => (
+                <option key={estilista.id} value={estilista.id}>
+                  {estilista.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Fecha y Hora de Inicio</label>
+            <input
+              type="datetime-local"
+              value={formData.fechaInicio}
+              onChange={(e) => setFormData({ ...formData, fechaInicio: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Fecha y Hora de Fin</label>
+            <input
+              type="datetime-local"
+              value={formData.fechaFin}
+              onChange={(e) => setFormData({ ...formData, fechaFin: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Motivo (opcional)</label>
+            <textarea
+              value={formData.motivo}
+              onChange={(e) => setFormData({ ...formData, motivo: e.target.value })}
+              rows="3"
+              placeholder="Ej: Emergencia, Almuerzo, Cita médica..."
+            />
+          </div>
+
+          <div className="modal-footer">
+            {unavailability && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('¿Estás seguro de eliminar esta indisponibilidad?')) {
+                    onDelete(unavailability.id);
+                  }
+                }}
+                className="btn btn-danger"
+              >
+                Eliminar
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-secondary"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="btn btn-danger"
+            >
+              {unavailability ? 'Actualizar' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onAddClient }) {
   const [formData, setFormData] = useState(appointment || {
     clienteId: '',
     estilistaId: '',
@@ -548,23 +815,12 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClient, setNewClient] = useState({ nombre: '', telefono: '', email: '' });
 
-  // Obtener info del cliente seleccionado
   const selectedClient = formData.clienteId ? clients.find(c => c.id === parseInt(formData.clienteId)) : null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
     const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(formData.tratamientoId));
-    
-    if (!isTimeSlotAvailable(
-      parseInt(formData.estilistaId),
-      formData.fecha,
-      tratamiento.duracion,
-      appointment?.id
-    )) {
-      alert('Este horario no está disponible para el estilista seleccionado');
-      return;
-    }
 
     onSave({
       ...formData,
@@ -675,10 +931,10 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
               onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
               required
             >
-              <option value="">Seleccionar estilista</option>
+              <option value="">Seleccionar empleado</option>
               {ESTILISTAS.map(estilista => (
                 <option key={estilista.id} value={estilista.id}>
-                  {estilista.nombre} - {estilista.especialidad}
+                  {estilista.nombre}
                 </option>
               ))}
             </select>
@@ -692,11 +948,19 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
               required
             >
               <option value="">Seleccionar tratamiento</option>
-              {TRATAMIENTOS.map(tratamiento => (
-                <option key={tratamiento.id} value={tratamiento.id}>
-                  {tratamiento.nombre} ({tratamiento.duracion} min) - {tratamiento.categoria}
-                </option>
-              ))}
+              {TRATAMIENTOS.map(tratamiento => {
+                const horas = Math.floor(tratamiento.duracion / 60);
+                const minutos = tratamiento.duracion % 60;
+                const duracionTexto = horas > 0 
+                  ? `${horas}:${minutos.toString().padStart(2, '0')} hrs`
+                  : `${minutos} min`;
+                
+                return (
+                  <option key={tratamiento.id} value={tratamiento.id}>
+                    {tratamiento.nombre} - {duracionTexto}
+                  </option>
+                );
+              })}
             </select>
           </div>
 

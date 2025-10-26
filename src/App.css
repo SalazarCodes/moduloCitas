@@ -750,3 +750,18 @@ body {
 .client-info-display p:not(:last-child) {
   margin-bottom: 0.25rem;
 }
+/* Grid para mostrar citas lado a lado */
+.hour-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.5rem;
+}
+
+/* Unavailability Card */
+.unavailability-card {
+  opacity: 0.95;
+}
+
+.unavailability-card:hover {
+  opacity: 1;
+}
