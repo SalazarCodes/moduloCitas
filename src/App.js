@@ -20,7 +20,7 @@ const TRATAMIENTOS = [
   { id: 4, nombre: "Tinte", duracion: 70, categoria: "Cabello" },
   { id: 5, nombre: "Tratamiento", duracion: 60, categoria: "Cabello" },
   { id: 6, nombre: "Corte de puntas", duracion: 20, categoria: "Cabello" },
-  { id: 7, nombre: "Corte fama", duracion: 30, categoria: "Cabello" },
+  { id: 7, nombre: "Corte forma", duracion: 30, categoria: "Cabello" },
   { id: 8, nombre: "Corte + lavado", duracion: 40, categoria: "Cabello" },
   { id: 9, nombre: "Corte + lavado + tratamiento", duracion: 70, categoria: "Cabello" },
   { id: 10, nombre: "Corte + lavado + planchado", duracion: 70, categoria: "Cabello" },
@@ -586,7 +586,7 @@ function MonthView({ currentDate, appointments, unavailabilities, setEditingAppo
                           borderLeft: '3px solid #dc2626'
                         }}
                       >
-                        {estilista?.nombre} - Indisponible
+                        {estilista?.nombre}
                       </div>
                     );
                   })}
@@ -725,13 +725,13 @@ function UnavailabilityModal({ unavailability, onClose, onSave, onDelete }) {
 
         <form onSubmit={handleSubmit} className="modal-body">
           <div className="form-group">
-            <label>Estilista</label>
+            <label>Responsable</label>
             <select
               value={formData.estilistaId}
               onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
               required
             >
-              <option value="">Seleccionar empleado</option>
+              <option value="">Seleccionar</option>
               {ESTILISTAS.map(estilista => (
                 <option key={estilista.id} value={estilista.id}>
                   {estilista.nombre}
@@ -925,13 +925,13 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
           </div>
 
           <div className="form-group">
-            <label>Estilista</label>
+            <label>Responsable</label>
             <select
               value={formData.estilistaId}
               onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
               required
             >
-              <option value="">Seleccionar empleado</option>
+              <option value="">Seleccionar</option>
               {ESTILISTAS.map(estilista => (
                 <option key={estilista.id} value={estilista.id}>
                   {estilista.nombre}
