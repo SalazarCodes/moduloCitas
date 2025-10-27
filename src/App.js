@@ -34,8 +34,8 @@ const TRATAMIENTOS = [
   { id: 18, nombre: "Lavado + planchado", duracion: 90, categoria: "Cabello" },
 ];
 
-const HORARIO_INICIO = 10; // 8 AM
-const HORARIO_FIN = 21; // 10 PM
+const HORARIO_INICIO = 10; // 10 AM
+const HORARIO_FIN = 21; // 9 PM
 
 // ============================================
 // COMPONENTE PRINCIPAL
@@ -105,21 +105,23 @@ export default function SalonAppointmentSystem() {
   }, [appointments]);
 
   useEffect(() => {
-    const checkAutoBackup = () => {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentDate = now.toDateString();
-      
-      if (currentHour === 22 && lastBackupDate !== currentDate) {
-        exportData();
-        setLastBackupDate(currentDate);
-        localStorage.setItem('salon_last_backup', currentDate);
+  const checkAutoBackup = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentDate = now.toDateString();
+    
+    // Solo hacer backup automático a las 21:15 (9:15 PM) si no se ha hecho backup manual hoy
+    if (currentHour === 21 && currentMinute === 15 && lastBackupDate !== currentDate) {
+      exportData(true); // true = automático
+      setLastBackupDate(currentDate);
+      localStorage.setItem('salon_last_backup', currentDate);
       }
     };
 
-    checkAutoBackup();
-    const interval = setInterval(checkAutoBackup, 60000);
-    return () => clearInterval(interval);
+  checkAutoBackup();
+  const interval = setInterval(checkAutoBackup, 60000);
+  return () => clearInterval(interval);
   }, [lastBackupDate, appointments, clients, unavailabilities]);
 
   const formatTime = (date) => {
@@ -175,10 +177,25 @@ export default function SalonAppointmentSystem() {
         <div className="header-content">
           <div className="header-title">
             <Scissors className="header-icon" />
-            <h1>Citas Musa</h1>
+            <h1>Sistema de Citas</h1>
           </div>
           <div className="header-actions">
-            <button onClick={exportData} className="btn btn-success">
+            {lastBackupDate && (
+              <div className="backup-indicator">
+                <span className="backup-text">
+                  Último respaldo: {(() => {
+                    const lastBackup = new Date(lastBackupDate);
+                    const today = new Date();
+                    const diffDays = Math.floor((today - lastBackup) / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) return 'Hoy';
+                    if (diffDays === 1) return 'Ayer';
+                    return `Hace ${diffDays} días`;
+                  })()}
+                </span>
+              </div>
+            )}
+            <button onClick={() => exportData(false)} className="btn btn-success">
               <Download size={16} />
               Exportar
             </button>
@@ -189,6 +206,24 @@ export default function SalonAppointmentSystem() {
             </label>
           </div>
         </div>
+        {lastBackupDate && (() => {
+          const lastBackup = new Date(lastBackupDate);
+          const today = new Date();
+          const diffDays = Math.floor((today - lastBackup) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays >= 7) {
+            return (
+              <div className="backup-warning">
+                <Bell size={16} />
+                <span>⚠️ Han pasado {diffDays} días sin backup. Se recomienda exportar los datos.</span>
+                <button onClick={() => exportData(false)} className="btn btn-sm btn-success">
+                  Exportar Ahora
+                </button>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </header>
 
       {notifications.length > 0 && (
@@ -196,11 +231,14 @@ export default function SalonAppointmentSystem() {
           {notifications.map(apt => {
             const estilista = getEstilistaById(apt.estilistaId);
             const client = getClientById(apt.clienteId);
+            const minutosRestantes = Math.max(0, Math.ceil((new Date(apt.fecha) - new Date()) / (1000 * 60)));
             return (
               <div key={apt.id} className="notification">
                 <Bell size={20} />
                 <div className="notification-content">
-                  <p className="notification-title">Cita en 10 minutos</p>
+                  <p className="notification-title">
+                    Cita en {minutosRestantes} {minutosRestantes === 1 ? 'minuto' : 'minutos'}
+                  </p>
                   <p className="notification-text">{estilista?.nombre} - {client?.nombre}</p>
                   <p className="notification-time">{formatTime(apt.fecha)}</p>
                 </div>
