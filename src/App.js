@@ -938,7 +938,7 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
                 />
                 <input
                   type="email"
-                  placeholder="Email (opcional)"
+                  placeholder="DNI (opcional)"
                   value={newClient.email}
                   onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
                 />
@@ -1175,7 +1175,7 @@ function ClientModal({ clients, onClose, onSave, onDelete }) {
               </div>
 
               <div className="form-group">
-                <label>Email</label>
+                <label>DNI</label>
                 <input
                   type="email"
                   value={formData.email}
