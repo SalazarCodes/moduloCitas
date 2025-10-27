@@ -10,7 +10,7 @@ const ESTILISTAS = [
   { id: 1, nombre: "Noelia", especialidad: "Cabello", color: "#3B82F6" },
   { id: 2, nombre: "Kathy", especialidad: "Tratamientos corporales", color: "#A855F7" },
   { id: 3, nombre: "Yazmine", especialidad: "Uñas", color: "#10B981" },
-  { id: 4, nombre: "Katiusca", especialidad: "Todo terreno", color: "#F59E0B" },
+  { id: 4, nombre: "Kati", especialidad: "Todo terreno", color: "#9F0BF5" },
 ];
 
 const TRATAMIENTOS = [
