@@ -842,13 +842,19 @@ function UnavailabilityModal({ unavailability, onClose, onSave, onDelete }) {
   );
 }
 function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onAddClient }) {
-  const [formData, setFormData] = useState(appointment || {
-    clienteId: '',
-    estilistaId: '',
-    tratamientoId: '',
-    fecha: new Date().toISOString().slice(0, 16),
-    notas: ''
-  });
+  const [formData, setFormData] = useState(appointment ? {
+  ...appointment,
+  categoriaSeleccionada: appointment.tratamientoId 
+    ? TRATAMIENTOS.find(t => t.id === appointment.tratamientoId)?.categoria 
+    : ''
+} : {
+  clienteId: '',
+  estilistaId: '',
+  tratamientoId: '',
+  categoriaSeleccionada: '',
+  fecha: new Date().toISOString().slice(0, 16),
+  notas: ''
+});
 
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClient, setNewClient] = useState({ nombre: '', telefono: '', email: '' });
@@ -979,28 +985,46 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
           </div>
 
           <div className="form-group">
-            <label>Tratamiento</label>
+            <label>Categoría</label>
             <select
-              value={formData.tratamientoId}
-              onChange={(e) => setFormData({ ...formData, tratamientoId: e.target.value })}
+              value={formData.categoriaSeleccionada || ''}
+              onChange={(e) => setFormData({ ...formData, categoriaSeleccionada: e.target.value, tratamientoId: '' })}
               required
             >
-              <option value="">Seleccionar tratamiento</option>
-              {TRATAMIENTOS.map(tratamiento => {
-                const horas = Math.floor(tratamiento.duracion / 60);
-                const minutos = tratamiento.duracion % 60;
-                const duracionTexto = horas > 0 
-                  ? `${horas}:${minutos.toString().padStart(2, '0')} hrs`
-                  : `${minutos} min`;
-                
-                return (
-                  <option key={tratamiento.id} value={tratamiento.id}>
-                    {tratamiento.nombre} - {duracionTexto}
-                  </option>
-                );
-              })}
+              <option value="">Seleccionar categoría</option>
+              <option value="Cabello">Cabello</option>
+              <option value="Pestañas">Pestañas</option>
+              <option value="Uñas">Uñas</option>
             </select>
           </div>
+
+          {formData.categoriaSeleccionada && (
+            <div className="form-group">
+              <label>Tratamiento</label>
+              <select
+                value={formData.tratamientoId}
+                onChange={(e) => setFormData({ ...formData, tratamientoId: e.target.value })}
+                required
+              >
+                <option value="">Seleccionar tratamiento</option>
+                {TRATAMIENTOS
+                  .filter(t => t.categoria === formData.categoriaSeleccionada)
+                  .map(tratamiento => {
+                    const horas = Math.floor(tratamiento.duracion / 60);
+                    const minutos = tratamiento.duracion % 60;
+                    const duracionTexto = horas > 0 
+                      ? `${horas}:${minutos.toString().padStart(2, '0')} hrs`
+                      : `${minutos} min`;
+                    
+                    return (
+                      <option key={tratamiento.id} value={tratamiento.id}>
+                        {tratamiento.nombre} ({duracionTexto})
+                      </option>
+                    );
+                  })}
+              </select>
+            </div>
+          )}
 
           <div className="form-group">
             <label>Fecha y Hora</label>
