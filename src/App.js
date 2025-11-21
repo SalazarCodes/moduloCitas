@@ -970,9 +970,7 @@ function UnavailabilityModal({ unavailability, onClose, onSave, onDelete }) {
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm('¿Estás seguro de eliminar esta indisponibilidad?')) {
-                    onDelete(unavailability.id);
-                  }
+                  onDelete(unavailability.id);
                 }}
                 className="btn btn-danger"
               >
@@ -988,7 +986,7 @@ function UnavailabilityModal({ unavailability, onClose, onSave, onDelete }) {
             </button>
             <button
               type="submit"
-              className="btn btn-danger"
+              className="btn btn-warning"
             >
               {unavailability ? 'Actualizar' : 'Guardar'}
             </button>

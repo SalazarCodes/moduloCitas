@@ -151,6 +151,15 @@ body {
   background-color: #b91c1c;
 }
 
+.btn-warning {
+  background-color: #e9d203;
+  color: white;
+}
+
+.btn-warning:hover {
+  background-color: #b98f1c;
+}
+
 .btn-purple {
   background-color: #9333ea;
   color: white;
@@ -750,6 +759,7 @@ body {
 .client-info-display p:not(:last-child) {
   margin-bottom: 0.25rem;
 }
+
 /* Grid para mostrar citas lado a lado */
 .hour-items-grid {
   display: grid;
@@ -765,6 +775,7 @@ body {
 .unavailability-card:hover {
   opacity: 1;
 }
+
 /* Backup Indicator */
 .backup-indicator {
   display: flex;
