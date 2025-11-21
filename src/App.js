@@ -1,4 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import {
+  obtenerCitas,
+  obtenerClientes,
+  obtenerAusencias,
+  guardarCita,
+  guardarCliente,
+  guardarAusencia,
+  eliminarCita,
+  eliminarCliente,
+  eliminarAusencia
+} from './services/citasService';
 import { Clock, Users, Scissors, Download, Upload, Bell, Plus, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import './App.css';
 
@@ -91,28 +102,31 @@ export default function SalonAppointmentSystem() {
   const [filterEstilistaId, setFilterEstilistaId] = useState('');
 
   useEffect(() => {
-    const savedAppointments = localStorage.getItem('salon_appointments');
-    const savedUnavailabilities = localStorage.getItem('salon_unavailabilities');
-    const savedClients = localStorage.getItem('salon_clients');
-    const savedLastBackup = localStorage.getItem('salon_last_backup');
+    const cargarDatosIniciales = async () => {
+      try {
+        // Cargamos todo en paralelo para que sea más rápido
+        const [citasDB, clientesDB, ausenciasDB] = await Promise.all([
+          obtenerCitas(),
+          obtenerClientes(),
+          obtenerAusencias()
+        ]);
 
-    if (savedAppointments) setAppointments(JSON.parse(savedAppointments));
-    if (savedUnavailabilities) setUnavailabilities(JSON.parse(savedUnavailabilities));
-    if (savedClients) setClients(JSON.parse(savedClients));
-    if (savedLastBackup) setLastBackupDate(savedLastBackup);
+        if (citasDB) setAppointments(citasDB);
+        if (clientesDB) setClients(clientesDB);
+        if (ausenciasDB) setUnavailabilities(ausenciasDB);
+
+        // El backup sigue siendo local por ahora
+        const savedLastBackup = localStorage.getItem('salon_last_backup');
+        if (savedLastBackup) setLastBackupDate(savedLastBackup);
+
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+        alert("Hubo un error cargando los datos. Revisa la consola.");
+      }
+    };
+
+    cargarDatosIniciales();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('salon_appointments', JSON.stringify(appointments));
-  }, [appointments]);
-
-  useEffect(() => {
-    localStorage.setItem('salon_unavailabilities', JSON.stringify(unavailabilities));
-  }, [unavailabilities]);
-
-  useEffect(() => {
-    localStorage.setItem('salon_clients', JSON.stringify(clients));
-  }, [clients]);
 
   useEffect(() => {
     const checkReminders = () => {
@@ -407,19 +421,34 @@ export default function SalonAppointmentSystem() {
             setShowModal(false);
             setEditingAppointment(null);
           }}
-          onSave={(apt) => {
-            if (editingAppointment) {
-              setAppointments(prev => prev.map(a => a.id === apt.id ? apt : a));
-            } else {
-              setAppointments(prev => [...prev, { ...apt, id: Date.now(), notified: false }]);
+          onSave={async (apt) => { // Nota el async
+            try {
+              // 1. Guardar en BD (Supabase o LocalStorage según el servicio)
+              const citaGuardada = await guardarCita(apt);
+
+              // 2. Actualizar estado visual (UI)
+              if (editingAppointment) {
+                setAppointments(prev => prev.map(a => a.id === citaGuardada.id ? citaGuardada : a));
+              } else {
+                // Usamos citaGuardada porque si es Supabase, él genera el ID real
+                setAppointments(prev => [...prev, citaGuardada]);
+              }
+
+              setShowModal(false);
+              setEditingAppointment(null);
+            } catch (error) {
+              alert("Error al guardar la cita");
+              console.error(error);
             }
-            setShowModal(false);
-            setEditingAppointment(null);
           }}
-          onDelete={(id) => {
-            setAppointments(prev => prev.filter(a => a.id !== id));
-            setShowModal(false);
-            setEditingAppointment(null);
+
+          onDelete={async (id) => { // Nota el async
+            if (window.confirm('¿Eliminar cita?')) {
+              await eliminarCita(id); // Llamada al servicio
+              setAppointments(prev => prev.filter(a => a.id !== id));
+              setShowModal(false);
+              setEditingAppointment(null);
+            }
           }}
           clients={clients}
           onAddClient={(client) => {
@@ -436,19 +465,37 @@ export default function SalonAppointmentSystem() {
             setShowUnavailabilityModal(false);
             setEditingUnavailability(null);
           }}
-          onSave={(unav) => {
-            if (editingUnavailability) {
-              setUnavailabilities(prev => prev.map(u => u.id === unav.id ? unav : u));
-            } else {
-              setUnavailabilities(prev => [...prev, { ...unav, id: Date.now() }]);
+          onSave={async (unav) => {
+            try {
+              // 1. Guardar en BD (o localStorage vía servicio)
+              const ausenciaGuardada = await guardarAusencia(unav);
+
+              // 2. Actualizar UI
+              if (editingUnavailability) {
+                setUnavailabilities(prev => prev.map(u => u.id === ausenciaGuardada.id ? ausenciaGuardada : u));
+              } else {
+                setUnavailabilities(prev => [...prev, ausenciaGuardada]);
+              }
+
+              setShowUnavailabilityModal(false);
+              setEditingUnavailability(null);
+            } catch (error) {
+              console.error(error);
+              alert("Error al guardar la ausencia");
             }
-            setShowUnavailabilityModal(false);
-            setEditingUnavailability(null);
           }}
-          onDelete={(id) => {
-            setUnavailabilities(prev => prev.filter(u => u.id !== id));
-            setShowUnavailabilityModal(false);
-            setEditingUnavailability(null);
+          onDelete={async (id) => {
+            if (window.confirm('¿Estás seguro de eliminar esta indisponibilidad?')) {
+              try {
+                await eliminarAusencia(id);
+                setUnavailabilities(prev => prev.filter(u => u.id !== id));
+                setShowUnavailabilityModal(false);
+                setEditingUnavailability(null);
+              } catch (error) {
+                console.error(error);
+                alert("Error al eliminar la ausencia");
+              }
+            }
           }}
         />
       )}
@@ -457,15 +504,34 @@ export default function SalonAppointmentSystem() {
         <ClientModal
           clients={clients}
           onClose={() => setShowClientModal(false)}
-          onSave={(client) => {
-            if (client.id) {
-              setClients(prev => prev.map(c => c.id === client.id ? client : c));
-            } else {
-              setClients(prev => [...prev, { ...client, id: Date.now() }]);
+          onSave={async (clientData) => {
+            try {
+              // 1. Guardar cliente
+              const clienteGuardado = await guardarCliente(clientData);
+
+              // 2. Actualizar la lista en pantalla (Buscamos si ya existe para actualizar o agregar)
+              setClients(prev => {
+                const existe = prev.some(c => c.id === clienteGuardado.id);
+                if (existe) {
+                  return prev.map(c => c.id === clienteGuardado.id ? clienteGuardado : c);
+                } else {
+                  return [...prev, clienteGuardado];
+                }
+              });
+
+            } catch (error) {
+              console.error(error);
+              alert("Error al guardar el cliente");
             }
           }}
-          onDelete={(id) => {
-            setClients(prev => prev.filter(c => c.id !== id));
+          onDelete={async (id) => {
+            try {
+              await eliminarCliente(id);
+              setClients(prev => prev.filter(c => c.id !== id));
+            } catch (error) {
+              console.error(error);
+              alert("Error al eliminar el cliente");
+            }
           }}
         />
       )}
