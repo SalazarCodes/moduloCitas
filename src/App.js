@@ -11,6 +11,7 @@ const ESTILISTAS = [
   { id: 2, nombre: "Kathy", especialidad: "Tratamientos corporales", color: "#A855F7" },
   { id: 3, nombre: "Yazmine", especialidad: "Uñas", color: "#10B981" },
   { id: 4, nombre: "Kati", especialidad: "Todo terreno", color: "#9F0BF5" },
+  { id: 5, nombre: "Sharom", especialidad: "Cara", color: "#8F0A3D" },
 ];
 
 const TRATAMIENTOS = [
@@ -32,6 +33,32 @@ const TRATAMIENTOS = [
   { id: 16, nombre: "Alisado dual", duracion: 240, categoria: "Cabello" },
   { id: 17, nombre: "Alisado brasilero", duracion: 90, categoria: "Cabello" },
   { id: 18, nombre: "Lavado + planchado", duracion: 90, categoria: "Cabello" },
+  { id: 19, nombre: "Pintado Gel", duracion: 30, categoria: "Uñas" },
+  { id: 20, nombre: "Pintado Tradicional", duracion: 20, categoria: "Uñas" },
+  { id: 21, nombre: "Reforzamiento Gum Gel", duracion: 90, categoria: "Uñas" },
+  { id: 22, nombre: "Uñas Acrílicas", duracion: 120, categoria: "Uñas" },
+  { id: 23, nombre: "Pedicure Gel", duracion: 90, categoria: "Uñas" },
+  { id: 24, nombre: "Pedicure Tradicional", duracion: 40, categoria: "Uñas" },
+  { id: 25, nombre: "Uñas Rubber", duracion: 90, categoria: "Uñas" },
+  { id: 26, nombre: "Gum Gel Extension", duracion: 120, categoria: "Uñas" },
+  { id: 27, nombre: "Extension de pestañas", duracion: 120, categoria: "Cara" },
+  { id: 28, nombre: "Retiro de pestañas", duracion: 20, categoria: "Cara" },
+  { id: 29, nombre: "Lifting", duracion: 60, categoria: "Cara" },
+  { id: 30, nombre: "Laminado", duracion: 40, categoria: "Cara" },
+  { id: 31, nombre: "Henna", duracion: 40, categoria: "Cara" },
+  { id: 32, nombre: "Micropigmentacion", duracion: 180, categoria: "Cara" },
+  { id: 33, nombre: "Botox", duracion: 40, categoria: "Cara" },
+  { id: 34, nombre: "Depilacion Cejas Cera", duracion: 30, categoria: "Cara" },
+  { id: 35, nombre: "Depilacion Cejas Hilo", duracion: 20, categoria: "Cara" },
+  { id: 36, nombre: "Depilacion Bozo Cera", duracion: 30, categoria: "Cara" },
+  { id: 37, nombre: "Depilacion Bozo Hilo", duracion: 20, categoria: "Cara" },
+  { id: 38, nombre: "Depilacion Total Cara", duracion: 60, categoria: "Cara" },
+  { id: 39, nombre: "Facial", duracion: 60, categoria: "Cara" },
+  { id: 40, nombre: "Hidralips", duracion: 60, categoria: "Cara" },
+  { id: 41, nombre: "Microblading", duracion: 180, categoria: "Cara" },
+  { id: 42, nombre: "Peeling", duracion: 60, categoria: "Cara" },
+  { id: 43, nombre: "Retoque Labios", duracion: 150, categoria: "Cara" },
+  { id: 44, nombre: "Retoque Microblading", duracion: 150, categoria: "Cara" },
 ];
 
 const HORARIO_INICIO = 10; // 10 AM
@@ -60,7 +87,7 @@ export default function SalonAppointmentSystem() {
     const savedUnavailabilities = localStorage.getItem('salon_unavailabilities');
     const savedClients = localStorage.getItem('salon_clients');
     const savedLastBackup = localStorage.getItem('salon_last_backup');
-    
+
     if (savedAppointments) setAppointments(JSON.parse(savedAppointments));
     if (savedUnavailabilities) setUnavailabilities(JSON.parse(savedUnavailabilities));
     if (savedClients) setClients(JSON.parse(savedClients));
@@ -105,23 +132,23 @@ export default function SalonAppointmentSystem() {
   }, [appointments]);
 
   useEffect(() => {
-  const checkAutoBackup = () => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentDate = now.toDateString();
-    
-    // Solo hacer backup automático a las 21:15 (9:15 PM) si no se ha hecho backup manual hoy
-    if (currentHour === 21 && currentMinute === 15 && lastBackupDate !== currentDate) {
-      exportData(true); // true = automático
-      setLastBackupDate(currentDate);
-      localStorage.setItem('salon_last_backup', currentDate);
+    const checkAutoBackup = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentDate = now.toDateString();
+
+      // Solo hacer backup automático a las 21:15 (9:15 PM) si no se ha hecho backup manual hoy
+      if (currentHour === 21 && currentMinute === 15 && lastBackupDate !== currentDate) {
+        exportData(true); // true = automático
+        setLastBackupDate(currentDate);
+        localStorage.setItem('salon_last_backup', currentDate);
       }
     };
 
-  checkAutoBackup();
-  const interval = setInterval(checkAutoBackup, 60000);
-  return () => clearInterval(interval);
+    checkAutoBackup();
+    const interval = setInterval(checkAutoBackup, 60000);
+    return () => clearInterval(interval);
   }, [lastBackupDate, appointments, clients, unavailabilities]);
 
   const formatTime = (date) => {
@@ -187,7 +214,7 @@ export default function SalonAppointmentSystem() {
                     const lastBackup = new Date(lastBackupDate);
                     const today = new Date();
                     const diffDays = Math.floor((today - lastBackup) / (1000 * 60 * 60 * 24));
-                    
+
                     if (diffDays === 0) return 'Hoy';
                     if (diffDays === 1) return 'Ayer';
                     return `Hace ${diffDays} días`;
@@ -210,7 +237,7 @@ export default function SalonAppointmentSystem() {
           const lastBackup = new Date(lastBackupDate);
           const today = new Date();
           const diffDays = Math.floor((today - lastBackup) / (1000 * 60 * 60 * 24));
-          
+
           if (diffDays >= 7) {
             return (
               <div className="backup-warning">
@@ -424,7 +451,7 @@ export default function SalonAppointmentSystem() {
 
 function DayView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const hours = Array.from({ length: HORARIO_FIN - HORARIO_INICIO }, (_, i) => i + HORARIO_INICIO);
-  
+
   const dayAppointments = appointments.filter(apt => {
     const aptDate = new Date(apt.fecha);
     return aptDate.toDateString() === currentDate.toDateString();
@@ -496,7 +523,7 @@ function DayView({ currentDate, appointments, unavailabilities, setEditingAppoin
 function WeekView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-  
+
   const days = Array.from({ length: 7 }, (_, i) => {
     const day = new Date(startOfWeek);
     day.setDate(startOfWeek.getDate() + i);
@@ -565,14 +592,14 @@ function WeekView({ currentDate, appointments, unavailabilities, setEditingAppoi
 function MonthView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  
+
   const firstDay = new Date(year, month, 1);
   const startDate = new Date(firstDay);
   startDate.setDate(startDate.getDate() - startDate.getDay());
-  
+
   const days = [];
   const current = new Date(startDate);
-  
+
   while (days.length < 35) {
     days.push(new Date(current));
     current.setDate(current.getDate() + 1);
@@ -739,7 +766,7 @@ function UnavailabilityModal({ unavailability, onClose, onSave, onDelete }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (new Date(formData.fechaFin) <= new Date(formData.fechaInicio)) {
       alert('La fecha de fin debe ser posterior a la fecha de inicio');
       return;
@@ -842,19 +869,20 @@ function UnavailabilityModal({ unavailability, onClose, onSave, onDelete }) {
   );
 }
 function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onAddClient }) {
+  const categoriasDisponibles = [...new Set(TRATAMIENTOS.map(t => t.categoria))];
   const [formData, setFormData] = useState(appointment ? {
-  ...appointment,
-  categoriaSeleccionada: appointment.tratamientoId 
-    ? TRATAMIENTOS.find(t => t.id === appointment.tratamientoId)?.categoria 
-    : ''
-} : {
-  clienteId: '',
-  estilistaId: '',
-  tratamientoId: '',
-  categoriaSeleccionada: '',
-  fecha: new Date().toISOString().slice(0, 16),
-  notas: ''
-});
+    ...appointment,
+    categoriaSeleccionada: appointment.tratamientoId
+      ? TRATAMIENTOS.find(t => t.id === appointment.tratamientoId)?.categoria
+      : ''
+  } : {
+    clienteId: '',
+    estilistaId: '',
+    tratamientoId: '',
+    categoriaSeleccionada: '',
+    fecha: new Date().toISOString().slice(0, 16),
+    notas: ''
+  });
 
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClient, setNewClient] = useState({ nombre: '', telefono: '', email: '' });
@@ -863,7 +891,7 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(formData.tratamientoId));
 
     onSave({
@@ -992,9 +1020,12 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
               required
             >
               <option value="">Seleccionar categoría</option>
-              <option value="Cabello">Cabello</option>
-              <option value="Pestañas">Pestañas</option>
-              <option value="Uñas">Uñas</option>
+              {categoriasDisponibles.map(categoria => (
+                <option key={categoria} value={categoria}>
+                  {categoria}
+                </option>
+              ))}
+
             </select>
           </div>
 
@@ -1012,10 +1043,10 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
                   .map(tratamiento => {
                     const horas = Math.floor(tratamiento.duracion / 60);
                     const minutos = tratamiento.duracion % 60;
-                    const duracionTexto = horas > 0 
+                    const duracionTexto = horas > 0
                       ? `${horas}:${minutos.toString().padStart(2, '0')} hrs`
                       : `${minutos} min`;
-                    
+
                     return (
                       <option key={tratamiento.id} value={tratamiento.id}>
                         {tratamiento.nombre} ({duracionTexto})
