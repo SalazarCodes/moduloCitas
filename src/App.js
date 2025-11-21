@@ -59,6 +59,13 @@ const TRATAMIENTOS = [
   { id: 42, nombre: "Peeling", duracion: 60, categoria: "Cara" },
   { id: 43, nombre: "Retoque Labios", duracion: 150, categoria: "Cara" },
   { id: 44, nombre: "Retoque Microblading", duracion: 150, categoria: "Cara" },
+  { id: 45, nombre: "Peptonas", duracion: 75, categoria: "Corporal", conteoSesiones: true },
+  { id: 46, nombre: "Drenaje Post Operatorio", duracion: 60, categoria: "Corporal" },
+  { id: 47, nombre: "Enzimas", duracion: 60, categoria: "Corporal" },
+  { id: 48, nombre: "Hidrolipoclasia", duracion: 90, categoria: "Corporal" },
+  { id: 49, nombre: "Carboxterapia", duracion: 20, categoria: "Corporal" },
+  { id: 50, nombre: "Maderoterapia", duracion: 40, categoria: "Corporal" },
+  { id: 51, nombre: "Paquete", duracion: 60, categoria: "Corporal" },
 ];
 
 const HORARIO_INICIO = 10; // 10 AM
@@ -81,6 +88,7 @@ export default function SalonAppointmentSystem() {
   const [editingUnavailability, setEditingUnavailability] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [lastBackupDate, setLastBackupDate] = useState(null);
+  const [filterEstilistaId, setFilterEstilistaId] = useState('');
 
   useEffect(() => {
     const savedAppointments = localStorage.getItem('salon_appointments');
@@ -325,6 +333,19 @@ export default function SalonAppointmentSystem() {
             </button>
           </div>
           <div className="action-buttons">
+            <select
+              value={filterEstilistaId}
+              onChange={(e) => setFilterEstilistaId(e.target.value)}
+              className="btn btn-secondary"
+              style={{ marginRight: '8px', paddingRight: '30px' }} // Ajuste visual
+            >
+              <option value="">Todos</option>
+              {ESTILISTAS.map(estilista => (
+                <option key={estilista.id} value={estilista.id}>
+                  {estilista.nombre}
+                </option>
+              ))}
+            </select>
             <button onClick={() => setShowUnavailabilityModal(true)} className="btn btn-danger">
               <X size={16} />
               Crear ausencia
@@ -346,6 +367,7 @@ export default function SalonAppointmentSystem() {
             currentDate={currentDate}
             appointments={appointments}
             unavailabilities={unavailabilities}
+            filterEstilistaId={filterEstilistaId}
             setEditingAppointment={setEditingAppointment}
             setEditingUnavailability={setEditingUnavailability}
             setShowModal={setShowModal}
@@ -357,6 +379,7 @@ export default function SalonAppointmentSystem() {
             currentDate={currentDate}
             appointments={appointments}
             unavailabilities={unavailabilities}
+            filterEstilistaId={filterEstilistaId}
             setEditingAppointment={setEditingAppointment}
             setEditingUnavailability={setEditingUnavailability}
             setShowModal={setShowModal}
@@ -368,6 +391,7 @@ export default function SalonAppointmentSystem() {
             currentDate={currentDate}
             appointments={appointments}
             unavailabilities={unavailabilities}
+            filterEstilistaId={filterEstilistaId}
             setEditingAppointment={setEditingAppointment}
             setEditingUnavailability={setEditingUnavailability}
             setShowModal={setShowModal}
@@ -449,22 +473,26 @@ export default function SalonAppointmentSystem() {
   );
 }
 
-function DayView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
+function DayView({ currentDate, appointments, unavailabilities, filterEstilistaId, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const hours = Array.from({ length: HORARIO_FIN - HORARIO_INICIO }, (_, i) => i + HORARIO_INICIO);
 
   const dayAppointments = appointments.filter(apt => {
     const aptDate = new Date(apt.fecha);
-    return aptDate.toDateString() === currentDate.toDateString();
+    const coincideFecha = aptDate.toDateString() === currentDate.toDateString();
+    const coincideEstilista = filterEstilistaId ? apt.estilistaId === parseInt(filterEstilistaId) : true;
+    return coincideFecha && coincideEstilista;
   }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
   const dayUnavailabilities = unavailabilities.filter(unav => {
     const unavDate = new Date(unav.fechaInicio);
-    return unavDate.toDateString() === currentDate.toDateString();
+    const coincideFecha = unavDate.toDateString() === currentDate.toDateString();
+    const coincideEstilista = filterEstilistaId ? unav.estilistaId === parseInt(filterEstilistaId) : true;
+    return coincideFecha && coincideEstilista;
   });
 
   return (
     <div className="view-card">
-      <h2>Agenda del Día</h2>
+      <h2>Agenda del Día {filterEstilistaId && `- ${ESTILISTAS.find(e => e.id === parseInt(filterEstilistaId))?.nombre}`}</h2>
       <div className="day-view">
         {hours.map(hour => {
           const hourAppointments = dayAppointments.filter(apt => {
@@ -500,6 +528,7 @@ function DayView({ currentDate, appointments, unavailabilities, setEditingAppoin
                       <AppointmentCard
                         key={apt.id}
                         appointment={apt}
+                        allAppointments={appointments}
                         onClick={() => {
                           setEditingAppointment(apt);
                           setShowModal(true);
@@ -520,7 +549,7 @@ function DayView({ currentDate, appointments, unavailabilities, setEditingAppoin
   );
 }
 
-function WeekView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
+function WeekView({ currentDate, appointments, unavailabilities, filterEstilistaId, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
 
@@ -537,12 +566,16 @@ function WeekView({ currentDate, appointments, unavailabilities, setEditingAppoi
         {days.map((day, index) => {
           const dayAppointments = appointments.filter(apt => {
             const aptDate = new Date(apt.fecha);
-            return aptDate.toDateString() === day.toDateString();
+            const coincideFecha = aptDate.toDateString() === day.toDateString();
+            const coincideEstilista = filterEstilistaId ? apt.estilistaId === parseInt(filterEstilistaId) : true;
+            return coincideFecha && coincideEstilista;
           }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
           const dayUnavailabilities = unavailabilities.filter(unav => {
             const unavDate = new Date(unav.fechaInicio);
-            return unavDate.toDateString() === day.toDateString();
+            const coincideFecha = unavDate.toDateString() === day.toDateString();
+            const coincideEstilista = filterEstilistaId ? unav.estilistaId === parseInt(filterEstilistaId) : true;
+            return coincideFecha && coincideEstilista;
           });
 
           const isToday = day.toDateString() === new Date().toDateString();
@@ -577,7 +610,7 @@ function WeekView({ currentDate, appointments, unavailabilities, setEditingAppoi
                       setShowModal(true);
                     }}
                   >
-                    <AppointmentCard appointment={apt} compact />
+                    <AppointmentCard appointment={apt} compact allAppointments={appointments} />
                   </div>
                 ))}
               </div>
@@ -589,7 +622,7 @@ function WeekView({ currentDate, appointments, unavailabilities, setEditingAppoi
   );
 }
 
-function MonthView({ currentDate, appointments, unavailabilities, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
+function MonthView({ currentDate, appointments, unavailabilities, filterEstilistaId, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -618,12 +651,16 @@ function MonthView({ currentDate, appointments, unavailabilities, setEditingAppo
           {days.map((day, index) => {
             const dayAppointments = appointments.filter(apt => {
               const aptDate = new Date(apt.fecha);
-              return aptDate.toDateString() === day.toDateString();
+              const coincideFecha = aptDate.toDateString() === day.toDateString();
+              const coincideEstilista = filterEstilistaId ? apt.estilistaId === parseInt(filterEstilistaId) : true;
+              return coincideFecha && coincideEstilista;
             });
 
             const dayUnavailabilities = unavailabilities.filter(unav => {
               const unavDate = new Date(unav.fechaInicio);
-              return unavDate.toDateString() === day.toDateString();
+              const coincideFecha = unavDate.toDateString() === day.toDateString();
+              const coincideEstilista = filterEstilistaId ? unav.estilistaId === parseInt(filterEstilistaId) : true;
+              return coincideFecha && coincideEstilista;
             });
 
             const isCurrentMonth = day.getMonth() === month;
@@ -687,10 +724,34 @@ function MonthView({ currentDate, appointments, unavailabilities, setEditingAppo
   );
 }
 
-function AppointmentCard({ appointment, onClick, compact = false }) {
+function AppointmentCard({ appointment, onClick, compact = false, allAppointments = [] }) {
   const estilista = ESTILISTAS.find(e => e.id === appointment.estilistaId);
   const tratamiento = TRATAMIENTOS.find(t => t.id === appointment.tratamientoId);
   const client = JSON.parse(localStorage.getItem('salon_clients') || '[]').find(c => c.id === appointment.clienteId);
+
+  // --- LÓGICA DE SESIONES ---
+  let etiquetaSesion = "";
+
+  // 1. Verificamos si el tratamiento tiene el flag activado y si hay citas para buscar
+  if (tratamiento?.conteoSesiones && allAppointments.length > 0) {
+    // 2. Filtramos todas las citas pasadas o futuras de ESTE cliente con ESTE tratamiento
+    const historialCitas = allAppointments
+      .filter(a =>
+        a.clienteId === appointment.clienteId &&
+        a.tratamientoId === appointment.tratamientoId
+      )
+      // 3. Ordenamos por fecha para saber el orden cronológico real
+      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+    // 4. Buscamos en qué posición (índice) está la cita actual
+    const indice = historialCitas.findIndex(a => a.id === appointment.id);
+
+    // 5. Si la encontramos, el número de sesión es índice + 1
+    if (indice !== -1) {
+      etiquetaSesion = ` (Sesión ${indice + 1})`;
+    }
+  }
+  // ---------------------------
 
   return (
     <div
@@ -707,7 +768,10 @@ function AppointmentCard({ appointment, onClick, compact = false }) {
       {!compact && (
         <>
           <div className="appointment-client">{client?.nombre}</div>
-          <div className="appointment-treatment">{tratamiento?.nombre}</div>
+          <div className="appointment-treatment">
+            {tratamiento?.nombre}
+            <span className="text-xs font-semibold text-gray-600">{etiquetaSesion}</span>
+          </div>
           <div className="appointment-time">
             <Clock size={14} />
             {new Date(appointment.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {tratamiento?.duracion} min
@@ -1232,9 +1296,14 @@ function ClientModal({ clients, onClose, onSave, onDelete }) {
               <div className="form-group">
                 <label>DNI</label>
                 <input
-                  type="email"
+                  type="text"
+                  inputMode="numeric"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => {
+                    const soloNumeros = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    setFormData({ ...formData, email: soloNumeros });
+                  }}
+                  placeholder="8 dígitos"
                 />
               </div>
 
