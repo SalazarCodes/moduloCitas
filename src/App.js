@@ -1212,9 +1212,7 @@ function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onA
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm('¿Estás seguro de eliminar esta cita?')) {
-                    onDelete(appointment.id);
-                  }
+                  onDelete(appointment.id);
                 }}
                 className="btn btn-danger"
               >

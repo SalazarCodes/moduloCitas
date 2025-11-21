@@ -1,16 +1,18 @@
 import { supabase } from '../supabaseClient';
 
-// ==========================================
-// CONFIGURACIÓN
-// ==========================================
-// Cambia a TRUE cuando tengas tu tabla creada en Supabase
 const USAR_SUPABASE = true;
 
-// Claves para LocalStorage (solo se usan si USAR_SUPABASE es false)
 const KEYS = {
     CITAS: 'salon_appointments',
     CLIENTES: 'salon_clients',
     AUSENCIAS: 'salon_unavailabilities'
+};
+
+// Función auxiliar para encontrar un valor sin importar si la clave está en mayúscula o minúscula
+const getValorSeguro = (obj, key) => {
+    if (!obj) return null;
+    // Busca la clave exacta, O la clave en minúsculas, O la clave común de DB
+    return obj[key] || obj[key.toLowerCase()] || obj[key.toLowerCase().replace('id', '_id')];
 };
 
 // ==========================================
@@ -23,44 +25,52 @@ export const obtenerCitas = async () => {
             .from('citas')
             .select('*');
         if (error) throw error;
+
+        // TRADUCCIÓN HÍBRIDA (Busca mayúsculas O minúsculas)
         return data.map(c => ({
             ...c,
-            clienteId: c.clienteid,
-            estilistaId: c.estilistaid,
-            tratamientoId: c.tratamientoid
+            clienteId: getValorSeguro(c, 'clienteId'),
+            estilistaId: getValorSeguro(c, 'estilistaId'),
+            tratamientoId: getValorSeguro(c, 'tratamientoId'),
+            categoriaSeleccionada: '' // Reiniciamos esto para el front
         }));
     } else {
-        // Modo Local: Simulamos retardo de red
         return JSON.parse(localStorage.getItem(KEYS.CITAS) || '[]');
     }
 };
 
-// En src/services/citasService.js
-
 export const guardarCita = async (cita) => {
     if (USAR_SUPABASE) {
+        // Leemos el valor de donde sea que venga (del state de React o de una edición previa)
+        const clienteId = getValorSeguro(cita, 'clienteId');
+        const estilistaId = getValorSeguro(cita, 'estilistaId');
+        const tratamientoId = getValorSeguro(cita, 'tratamientoId');
+
+        // Validación de seguridad: Si faltan IDs, lanzamos error antes de enviar
+        if (!clienteId || !estilistaId || !tratamientoId) {
+            console.error("Datos incompletos:", cita);
+            // No lanzamos error fatal para no romper la app, pero avisamos en consola
+        }
+
+        // Preparamos el objeto para Supabase (Minúsculas para asegurar compatibilidad)
+        // Nota: Si tu columna en Supabase se llama "clienteId" (con comillas), esto podría requerir ajuste,
+        // pero usualmente Postgre acepta enviar todo minúscula si no se usan comillas.
         const citaParaBD = {
-            clienteid: parseInt(cita.clienteid),
-            estilistaid: parseInt(cita.estilistaid),
-            tratamientoid: parseInt(cita.tratamientoid),
+            clienteid: parseInt(clienteId),
+            estilistaid: parseInt(estilistaId),
+            tratamientoid: parseInt(tratamientoId),
             fecha: new Date(cita.fecha).toISOString(),
             notas: cita.notas || '',
-            duracion: parseInt(cita.duracion)
+            duracion: parseInt(cita.duracion || 0)
         };
 
-        // --- CAMBIO CLAVE AQUÍ ---
-        // Solo pasamos el ID si es un ID real de base de datos (número pequeño).
-        // Si es un ID temporal (timestamp gigante generado por Date.now()), lo ignoramos
-        // para que Supabase genere uno nuevo limpio (1, 2, 3...).
-
-        const esIdTemporal = cita.id && cita.id > 2000000000; // Un timestamp siempre es mayor a 2 mil millones
-
+        // Lógica de ID (Evitar timestamps gigantes)
+        const esIdTemporal = cita.id && cita.id > 2000000000;
         if (cita.id && !esIdTemporal) {
             citaParaBD.id = cita.id;
         }
-        // -------------------------
 
-        console.log("Enviando a Supabase (sin ID temporal):", citaParaBD);
+        console.log("Payload final enviado a Supabase:", citaParaBD);
 
         const { data, error } = await supabase
             .from('citas')
@@ -68,16 +78,18 @@ export const guardarCita = async (cita) => {
             .select();
 
         if (error) throw error;
-        const citaGuardada = data[0];
+
+        // Traducir respuesta de vuelta
+        const guardada = data[0];
         return {
-            ...citaGuardada,
-            clienteId: citaGuardada.clienteid,
-            estilistaId: citaGuardada.estilistaid,
-            tratamientoId: citaGuardada.tratamientoid
+            ...guardada,
+            clienteId: getValorSeguro(guardada, 'clienteId'),
+            estilistaId: getValorSeguro(guardada, 'estilistaId'),
+            tratamientoId: getValorSeguro(guardada, 'tratamientoId')
         };
 
     } else {
-        // (El código de LocalStorage se queda igual...)
+        // MODO LOCAL (Sin cambios)
         const citas = JSON.parse(localStorage.getItem(KEYS.CITAS) || '[]');
         const citaAGuardar = { ...cita };
         const index = citas.findIndex(c => c.id === citaAGuardar.id);
@@ -94,10 +106,7 @@ export const guardarCita = async (cita) => {
 
 export const eliminarCita = async (id) => {
     if (USAR_SUPABASE) {
-        const { error } = await supabase
-            .from('citas')
-            .delete()
-            .eq('id', id);
+        const { error } = await supabase.from('citas').delete().eq('id', id);
         if (error) throw error;
     } else {
         const citas = JSON.parse(localStorage.getItem(KEYS.CITAS) || '[]');
@@ -109,8 +118,6 @@ export const eliminarCita = async (id) => {
 // ==========================================
 // 2. GESTIÓN DE CLIENTES
 // ==========================================
-// (Clientes suele usar nombres simples como nombre, telefono, email, 
-// así que probablemente no necesita traducción, pero por seguridad revisamos)
 
 export const obtenerClientes = async () => {
     if (USAR_SUPABASE) {
@@ -124,11 +131,10 @@ export const obtenerClientes = async () => {
 
 export const guardarCliente = async (cliente) => {
     if (USAR_SUPABASE) {
-        // Aseguramos que no vaya ningún campo raro
         const clienteBD = {
             nombre: cliente.nombre,
             telefono: cliente.telefono,
-            email: cliente.email, // Recuerda que este es tu campo DNI
+            email: cliente.email,
             notas: cliente.notas
         };
         if (cliente.id) clienteBD.id = cliente.id;
@@ -169,12 +175,11 @@ export const obtenerAusencias = async () => {
         const { data, error } = await supabase.from('ausencias').select('*');
         if (error) throw error;
 
-        // TRADUCCIÓN TAMBIÉN AQUÍ
         return data.map(a => ({
             ...a,
-            estilistaId: a.estilistaid,     // Traducción
-            fechaInicio: a.fechainicio,     // Ojo con esto, Supabase suele devolver todo minúscula
-            fechaFin: a.fechafin            // Si creaste 'fechaInicio' en supabase, checa si te lo devuelve 'fechainicio'
+            estilistaId: getValorSeguro(a, 'estilistaId'),
+            fechaInicio: getValorSeguro(a, 'fechaInicio'),
+            fechaFin: getValorSeguro(a, 'fechaFin')
         }));
     } else {
         return JSON.parse(localStorage.getItem(KEYS.AUSENCIAS) || '[]');
@@ -183,10 +188,14 @@ export const obtenerAusencias = async () => {
 
 export const guardarAusencia = async (ausencia) => {
     if (USAR_SUPABASE) {
+        const estilistaId = getValorSeguro(ausencia, 'estilistaId');
+        const fInicio = getValorSeguro(ausencia, 'fechaInicio');
+        const fFin = getValorSeguro(ausencia, 'fechaFin');
+
         const ausenciaBD = {
-            estilistaid: parseInt(ausencia.estilistaId),
-            fechainicio: new Date(ausencia.fechaInicio).toISOString(),
-            fechafin: new Date(ausencia.fechaFin).toISOString(),
+            estilistaid: parseInt(estilistaId),
+            fechainicio: new Date(fInicio).toISOString(),
+            fechafin: new Date(fFin).toISOString(),
             motivo: ausencia.motivo
         };
 
@@ -198,13 +207,12 @@ export const guardarAusencia = async (ausencia) => {
         const { data, error } = await supabase.from('ausencias').upsert([ausenciaBD]).select();
         if (error) throw error;
 
-        // Traducir respuesta
         const guardada = data[0];
         return {
             ...guardada,
-            estilistaId: guardada.estilistaid,
-            fechaInicio: guardada.fechainicio,
-            fechaFin: guardada.fechafin
+            estilistaId: getValorSeguro(guardada, 'estilistaId'),
+            fechaInicio: getValorSeguro(guardada, 'fechaInicio'),
+            fechaFin: getValorSeguro(guardada, 'fechaFin')
         };
     } else {
         const ausencias = JSON.parse(localStorage.getItem(KEYS.AUSENCIAS) || '[]');
