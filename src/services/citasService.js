@@ -1,6 +1,6 @@
 import { supabase } from '../supabaseClient';
 
-const USAR_SUPABASE = false;
+const USAR_SUPABASE = true;
 
 const KEYS = {
     CITAS: 'salon_appointments',
