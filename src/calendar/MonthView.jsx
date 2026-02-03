@@ -1,4 +1,4 @@
-import { HORARIO_INICIO, HORARIO_FIN, ESTILISTAS } from '../constants/salonData';
+import { ESTILISTAS } from '../constants/salonData';
 
 export default function MonthView({ currentDate, appointments, unavailabilities, filterEstilistaId, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
     const year = currentDate.getFullYear();
