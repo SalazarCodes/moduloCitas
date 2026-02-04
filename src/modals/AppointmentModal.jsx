@@ -22,6 +22,7 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
     const [showNewClient, setShowNewClient] = useState(false);
     const [newClient, setNewClient] = useState({ nombre: '', telefono: '', email: '' });
     const [showPayment, setShowPayment] = useState(false);
+    const [guardando, setGuardando] = useState(false);
     const selectedClient = formData.clienteId ? clients.find(c => c.id === parseInt(formData.clienteId)) : null;
 
     // Determinar si estamos en modo edición (cita ya creada)
@@ -42,18 +43,24 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        if (guardando) return;
+        setGuardando(true);
 
         const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(formData.tratamientoId));
 
-        onSave({
-            ...formData,
-            clienteId: parseInt(formData.clienteId),
-            estilistaId: parseInt(formData.estilistaId),
-            tratamientoId: parseInt(formData.tratamientoId),
-            duracion: tratamiento.duracion
-        });
+        try {
+            await onSave({
+                ...formData,
+                clienteId: parseInt(formData.clienteId),
+                estilistaId: parseInt(formData.estilistaId),
+                tratamientoId: parseInt(formData.tratamientoId),
+                duracion: tratamiento.duracion
+            });
+        } finally {
+            setGuardando(false);
+        }
     };
 
     const handleNewClient = () => {
@@ -283,8 +290,9 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
                         <button
                             type="submit"
                             className="btn btn-primary"
+                            disabled={guardando}
                         >
-                            {esEdicion ? 'Actualizar' : 'Guardar'}
+                            {guardando ? 'Guardando...' : (esEdicion ? 'Actualizar' : 'Guardar')}
                         </button>
                     </div>
                 </form>
