@@ -18,6 +18,7 @@ import {
   guardarCliente,
   guardarAusencia,
   eliminarCita,
+  cancelarCita,
   eliminarCliente,
   eliminarAusencia,
   registrarPago,
@@ -435,6 +436,21 @@ export default function SalonAppointmentSystem() {
               setAppointments(prev => prev.filter(a => a.id !== id));
               setShowModal(false);
               setEditingAppointment(null);
+            }
+          }}
+          onCancelar={async (id) => {
+            if (window.confirm('¿Cancelar esta cita?')) {
+              try {
+                await cancelarCita(id);
+                setAppointments(prev => prev.map(a =>
+                  a.id === id ? { ...a, cancelado: true } : a
+                ));
+                setShowModal(false);
+                setEditingAppointment(null);
+              } catch (error) {
+                console.error("Error al cancelar la cita:", error);
+                alert("Error al cancelar la cita");
+              }
             }
           }}
           clients={clients}

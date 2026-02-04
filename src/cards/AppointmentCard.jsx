@@ -1,4 +1,4 @@
-import { Clock, CheckCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { ESTILISTAS, TRATAMIENTOS } from '../constants/salonData';
 
 export default function AppointmentCard({ appointment, onClick, compact = false, allAppointments = [] }) {
@@ -45,6 +45,12 @@ export default function AppointmentCard({ appointment, onClick, compact = false,
                     <span className="pagado-badge">
                         <CheckCircle size={14} />
                         Pagado
+                    </span>
+                )}
+                {appointment.cancelado && (
+                    <span className="cancelado-badge">
+                        <XCircle size={14} />
+                        Cancelado
                     </span>
                 )}
             </div>

@@ -3,9 +3,9 @@ import { ClipboardList } from 'lucide-react';
 import { ESTILISTAS, TRATAMIENTOS } from './constants/salonData';
 
 export default function HistorialCitas({ appointments, clients }) {
-  const citasPagadas = useMemo(() => {
+  const citasHistorial = useMemo(() => {
     return appointments
-      .filter(a => a.pagado)
+      .filter(a => a.pagado || a.cancelado)
       .map(a => {
         const cliente = clients.find(c => c.id === a.clienteId);
         const estilista = ESTILISTAS.find(e => e.id === a.estilistaId);
@@ -24,6 +24,7 @@ export default function HistorialCitas({ appointments, clients }) {
           fechaInicio,
           fechaFin,
           duracion,
+          estado: a.cancelado ? 'Cancelado' : 'Finalizado',
         };
       })
       .sort((a, b) => b.fechaInicio - a.fechaInicio);
@@ -44,7 +45,7 @@ export default function HistorialCitas({ appointments, clients }) {
     });
   };
 
-  if (citasPagadas.length === 0) {
+  if (citasHistorial.length === 0) {
     return (
       <div className="historial-container">
         <div className="historial-header">
@@ -74,7 +75,7 @@ export default function HistorialCitas({ appointments, clients }) {
       </div>
 
       <div className="historial-resumen">
-        <span>{citasPagadas.length} cita{citasPagadas.length !== 1 ? 's' : ''} completada{citasPagadas.length !== 1 ? 's' : ''}</span>
+        <span>{citasHistorial.length} cita{citasHistorial.length !== 1 ? 's' : ''}</span>
       </div>
 
       <div className="historial-tabla-wrapper">
@@ -87,10 +88,11 @@ export default function HistorialCitas({ appointments, clients }) {
               <th>Estilista</th>
               <th>Hora Inicio</th>
               <th>Hora Fin</th>
+              <th>Estado</th>
             </tr>
           </thead>
           <tbody>
-            {citasPagadas.map(cita => (
+            {citasHistorial.map(cita => (
               <tr key={cita.id}>
                 <td>{formatFecha(cita.fechaInicio)}</td>
                 <td>{cita.clienteNombre}</td>
@@ -109,6 +111,11 @@ export default function HistorialCitas({ appointments, clients }) {
                 </td>
                 <td>{formatHora(cita.fechaInicio)}</td>
                 <td>{formatHora(cita.fechaFin)}</td>
+                <td>
+                  <span className={`estado-badge ${cita.estado === 'Finalizado' ? 'estado-finalizado' : 'estado-cancelado'}`}>
+                    {cita.estado}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>

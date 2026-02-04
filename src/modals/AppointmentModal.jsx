@@ -3,7 +3,7 @@ import { X, Plus, Banknote } from 'lucide-react';
 import { ESTILISTAS, TRATAMIENTOS } from '../constants/salonData';
 import PaymentModal from './PaymentModal';
 
-export default function AppointmentModal({ appointment, appointments, onClose, onSave, onDelete, onPagar, clients, onAddClient }) {
+export default function AppointmentModal({ appointment, appointments, onClose, onSave, onDelete, onCancelar, onPagar, clients, onAddClient }) {
     const categoriasDisponibles = [...new Set(TRATAMIENTOS.map(t => t.categoria))];
     const [formData, setFormData] = useState(appointment ? {
         ...appointment,
@@ -262,6 +262,15 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
                             >
                                 <Banknote size={18} />
                                 Cobrar
+                            </button>
+                        )}
+                        {esEdicion && !appointment.pagado && !appointment.cancelado && (
+                            <button
+                                type="button"
+                                onClick={() => onCancelar(appointment.id)}
+                                className="btn btn-warning"
+                            >
+                                Cancelar Cita
                             </button>
                         )}
                         {esEdicion && (

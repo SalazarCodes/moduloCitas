@@ -118,6 +118,22 @@ export const eliminarCita = async (id) => {
     }
 };
 
+export const cancelarCita = async (id) => {
+    if (USAR_SUPABASE) {
+        const { error } = await supabase
+            .from('citas')
+            .update({ cancelado: true })
+            .eq('id', id);
+        if (error) throw error;
+    } else {
+        const citas = JSON.parse(localStorage.getItem(KEYS.CITAS) || '[]');
+        const citasActualizadas = citas.map(c =>
+            c.id === id ? { ...c, cancelado: true } : c
+        );
+        localStorage.setItem(KEYS.CITAS, JSON.stringify(citasActualizadas));
+    }
+};
+
 // ==========================================
 // 2. GESTIÓN DE CLIENTES
 // ==========================================
