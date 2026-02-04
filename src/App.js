@@ -115,6 +115,7 @@ export default function SalonAppointmentSystem() {
     checkAutoBackup();
     const interval = setInterval(checkAutoBackup, 60000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastBackupDate, appointments, clients, unavailabilities]);
 
   const formatTime = (date) => {
