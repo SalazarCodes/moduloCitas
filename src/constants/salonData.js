@@ -60,5 +60,5 @@ export const TRATAMIENTOS = [
     { id: 51, nombre: "Paquete", duracion: 60, categoria: "Corporal" },
 ];
 
-export const HORARIO_INICIO = 10;
-export const HORARIO_FIN = 21;
+export const HORARIO_INICIO = 11;
+export const HORARIO_FIN = 22;
