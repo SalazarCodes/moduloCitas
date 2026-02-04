@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react';
+import { Clock, CheckCircle } from 'lucide-react';
 import { ESTILISTAS, TRATAMIENTOS } from '../constants/salonData';
 
 export default function AppointmentCard({ appointment, onClick, compact = false, allAppointments = [] }) {
@@ -33,7 +33,7 @@ export default function AppointmentCard({ appointment, onClick, compact = false,
     return (
         <div
             onClick={onClick}
-            className="appointment-card"
+            className={`appointment-card ${appointment.pagado ? 'appointment-pagado' : ''}`}
             style={{
                 backgroundColor: estilista?.color + '20',
                 borderLeft: `4px solid ${estilista?.color}`
@@ -41,6 +41,12 @@ export default function AppointmentCard({ appointment, onClick, compact = false,
         >
             <div className="appointment-estilista" style={{ color: estilista?.color }}>
                 {estilista?.nombre}
+                {appointment.pagado && (
+                    <span className="pagado-badge">
+                        <CheckCircle size={14} />
+                        Pagado
+                    </span>
+                )}
             </div>
             {!compact && (
                 <>
@@ -56,9 +62,16 @@ export default function AppointmentCard({ appointment, onClick, compact = false,
                 </>
             )}
             {compact && (
-                <div className="appointment-time-compact" style={{ color: estilista?.color }}>
-                    {new Date(appointment.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                </div>
+                <>
+                    <div className="appointment-time-compact" style={{ color: estilista?.color }}>
+                        {new Date(appointment.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    {appointment.pagado && (
+                        <span className="pagado-badge compact">
+                            <CheckCircle size={12} />
+                        </span>
+                    )}
+                </>
             )}
         </div>
     );

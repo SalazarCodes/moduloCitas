@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Banknote } from 'lucide-react';
 import { ESTILISTAS, TRATAMIENTOS } from '../constants/salonData';
+import PaymentModal from './PaymentModal';
 
-export default function AppointmentModal({ appointment, onClose, onSave, onDelete, clients, onAddClient }) {
+export default function AppointmentModal({ appointment, appointments, onClose, onSave, onDelete, onPagar, clients, onAddClient }) {
     const categoriasDisponibles = [...new Set(TRATAMIENTOS.map(t => t.categoria))];
     const [formData, setFormData] = useState(appointment ? {
         ...appointment,
@@ -20,8 +21,26 @@ export default function AppointmentModal({ appointment, onClose, onSave, onDelet
 
     const [showNewClient, setShowNewClient] = useState(false);
     const [newClient, setNewClient] = useState({ nombre: '', telefono: '', email: '' });
-
+    const [showPayment, setShowPayment] = useState(false);
     const selectedClient = formData.clienteId ? clients.find(c => c.id === parseInt(formData.clienteId)) : null;
+
+    // Determinar si estamos en modo edición (cita ya creada)
+    const esEdicion = !!appointment;
+
+    // Buscar citas no pagadas del mismo cliente en el mismo día
+    const obtenerCitasClienteMismoDia = () => {
+        if (!appointment || !appointments) return [];
+
+        const fechaCitaActual = new Date(appointment.fecha).toDateString();
+        const clienteIdActual = parseInt(appointment.clienteId);
+
+        return appointments.filter(c => {
+            if (c.pagado) return false;
+            if (parseInt(c.clienteId) !== clienteIdActual) return false;
+            const fechaCita = new Date(c.fecha).toDateString();
+            return fechaCita === fechaCitaActual;
+        });
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -49,11 +68,33 @@ export default function AppointmentModal({ appointment, onClose, onSave, onDelet
         setNewClient({ nombre: '', telefono: '', email: '' });
     };
 
+    const handlePaymentConfirm = async (datosPago) => {
+        try {
+            await onPagar(datosPago);
+            setShowPayment(false);
+        } catch (error) {
+            console.error("Error al pagar:", error);
+            alert("Hubo un error al registrar el pago");
+        }
+    };
+
+    // Si el modal de pago está abierto, mostrarlo
+    if (showPayment) {
+        const citasCliente = obtenerCitasClienteMismoDia();
+        return (
+            <PaymentModal
+                citasCliente={citasCliente}
+                onClose={() => setShowPayment(false)}
+                onConfirmPayment={handlePaymentConfirm}
+            />
+        );
+    }
+
     return (
         <div className="modal-overlay">
             <div className="modal">
                 <div className="modal-header">
-                    <h2>{appointment ? 'Editar Cita' : 'Nueva Cita'}</h2>
+                    <h2>{esEdicion ? 'Editar Cita' : 'Nueva Cita'}</h2>
                     <button onClick={onClose} className="modal-close">
                         <X size={24} />
                     </button>
@@ -212,7 +253,18 @@ export default function AppointmentModal({ appointment, onClose, onSave, onDelet
                     </div>
 
                     <div className="modal-footer">
-                        {appointment && (
+                        {esEdicion && !appointment.pagado && (
+                            <button
+                                type="button"
+                                onClick={() => setShowPayment(true)}
+                                className="btn"
+                                style={{ backgroundColor: '#10b981', color: 'white', display: 'flex', alignItems: 'center', gap: '5px' }}
+                            >
+                                <Banknote size={18} />
+                                Cobrar
+                            </button>
+                        )}
+                        {esEdicion && (
                             <button
                                 type="button"
                                 onClick={() => {
@@ -234,7 +286,7 @@ export default function AppointmentModal({ appointment, onClose, onSave, onDelet
                             type="submit"
                             className="btn btn-primary"
                         >
-                            {appointment ? 'Actualizar' : 'Guardar'}
+                            {esEdicion ? 'Actualizar' : 'Guardar'}
                         </button>
                     </div>
                 </form>

@@ -5,19 +5,25 @@ import ClientModal from './modals/ClientModal';
 import DayView from './calendar/DayView';
 import WeekView from './calendar/WeekView';
 import MonthView from './calendar/MonthView';
+import Sidebar from './Sidebar';
+import HistorialPagos from './HistorialPagos';
+import HistorialCitas from './HistorialCitas';
 import React, { useState, useEffect } from 'react';
 import {
   obtenerCitas,
   obtenerClientes,
   obtenerAusencias,
+  obtenerPagos,
   guardarCita,
   guardarCliente,
   guardarAusencia,
   eliminarCita,
   eliminarCliente,
-  eliminarAusencia
+  eliminarAusencia,
+  registrarPago,
+  marcarCitasPagadas
 } from './services/citasService';
-import { Users, Scissors, Download, Upload, Bell, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Download, Upload, Bell, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import './App.css';
 
 export default function SalonAppointmentSystem() {
@@ -34,20 +40,24 @@ export default function SalonAppointmentSystem() {
   const [notifications, setNotifications] = useState([]);
   const [lastBackupDate, setLastBackupDate] = useState(null);
   const [filterEstilistaId, setFilterEstilistaId] = useState('');
+  const [moduloActivo, setModuloActivo] = useState('citas');
+  const [pagos, setPagos] = useState([]);
 
   useEffect(() => {
     const cargarDatosIniciales = async () => {
       try {
         // Cargamos todo en paralelo para que sea más rápido
-        const [citasDB, clientesDB, ausenciasDB] = await Promise.all([
+        const [citasDB, clientesDB, ausenciasDB, pagosDB] = await Promise.all([
           obtenerCitas(),
           obtenerClientes(),
-          obtenerAusencias()
+          obtenerAusencias(),
+          obtenerPagos()
         ]);
 
         if (citasDB) setAppointments(citasDB);
         if (clientesDB) setClients(clientesDB);
         if (ausenciasDB) setUnavailabilities(ausenciasDB);
+        if (pagosDB) setPagos(pagosDB);
 
         // El backup sigue siendo local por ahora
         const savedLastBackup = localStorage.getItem('salon_last_backup');
@@ -155,13 +165,21 @@ export default function SalonAppointmentSystem() {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-layout">
+      <Sidebar moduloActivo={moduloActivo} onCambiarModulo={setModuloActivo} />
+      <div className="app-container">
+
+      {moduloActivo === 'historialCitas' && (
+        <HistorialCitas appointments={appointments} clients={clients} />
+      )}
+
+      {moduloActivo === 'historial' && (
+        <HistorialPagos pagos={pagos} />
+      )}
+
+      {moduloActivo === 'citas' && (<>
       <header className="app-header">
         <div className="header-content">
-          <div className="header-title">
-            <Scissors className="header-icon" />
-            <h1>Sistema de Citas</h1>
-          </div>
           <div className="header-actions">
             {lastBackupDate && (
               <div className="backup-indicator">
@@ -351,6 +369,7 @@ export default function SalonAppointmentSystem() {
       {showModal && (
         <AppointmentModal
           appointment={editingAppointment}
+          appointments={appointments}
           onClose={() => {
             setShowModal(false);
             setEditingAppointment(null);
@@ -373,6 +392,39 @@ export default function SalonAppointmentSystem() {
             } catch (error) {
               alert("Error al guardar la cita");
               console.error(error);
+            }
+          }}
+
+          onPagar={async (datosPago) => {
+            try {
+              // Enriquecer con nombre del cliente
+              const citaRef = appointments.find(a => datosPago.citaIds.includes(a.id));
+              const cliente = citaRef ? getClientById(citaRef.clienteId) : null;
+              const pagoEnriquecido = {
+                ...datosPago,
+                clienteNombre: cliente ? cliente.nombre : 'Sin nombre'
+              };
+
+              // 1. Registrar el pago en BD
+              const pagoGuardado = await registrarPago(pagoEnriquecido);
+
+              // 2. Marcar todas las citas incluidas como pagadas en BD
+              await marcarCitasPagadas(datosPago.citaIds);
+
+              // 3. Actualizar estado visual (UI)
+              setAppointments(prev => prev.map(a =>
+                datosPago.citaIds.includes(a.id) ? { ...a, pagado: true } : a
+              ));
+
+              // 4. Agregar pago al historial local
+              setPagos(prev => [...prev, pagoGuardado || pagoEnriquecido]);
+
+              // 5. Cerrar modal
+              setShowModal(false);
+              setEditingAppointment(null);
+            } catch (error) {
+              console.error("Error al registrar el pago:", error);
+              throw error; // Re-lanzar para que AppointmentModal muestre el alert
             }
           }}
 
@@ -469,6 +521,8 @@ export default function SalonAppointmentSystem() {
           }}
         />
       )}
+      </>)}
+    </div>
     </div>
   );
 }

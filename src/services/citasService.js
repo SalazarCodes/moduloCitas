@@ -1,11 +1,12 @@
 import { supabase } from '../supabaseClient';
 
-const USAR_SUPABASE = false;
+const USAR_SUPABASE = true;
 
 const KEYS = {
     CITAS: 'salon_appointments',
     CLIENTES: 'salon_clients',
-    AUSENCIAS: 'salon_unavailabilities'
+    AUSENCIAS: 'salon_unavailabilities',
+    PAGOS: 'salon_payments'
 };
 
 // Función auxiliar para encontrar un valor sin importar si la clave está en mayúscula o minúscula
@@ -32,6 +33,7 @@ export const obtenerCitas = async () => {
             clienteId: getValorSeguro(c, 'clienteId'),
             estilistaId: getValorSeguro(c, 'estilistaId'),
             tratamientoId: getValorSeguro(c, 'tratamientoId'),
+            pagado: c.pagado || false,
             categoriaSeleccionada: '' // Reiniciamos esto para el front
         }));
     } else {
@@ -61,7 +63,8 @@ export const guardarCita = async (cita) => {
             tratamientoid: parseInt(tratamientoId),
             fecha: new Date(cita.fecha).toISOString(),
             notas: cita.notas || '',
-            duracion: parseInt(cita.duracion || 0)
+            duracion: parseInt(cita.duracion || 0),
+            pagado: cita.pagado || false
         };
 
         // Lógica de ID (Evitar timestamps gigantes)
@@ -235,5 +238,75 @@ export const eliminarAusencia = async (id) => {
         const ausencias = JSON.parse(localStorage.getItem(KEYS.AUSENCIAS) || '[]');
         const nuevasAusencias = ausencias.filter(a => a.id !== id);
         localStorage.setItem(KEYS.AUSENCIAS, JSON.stringify(nuevasAusencias));
+    }
+};
+
+// ==========================================
+// 4. GESTIÓN DE PAGOS
+// ==========================================
+
+export const obtenerPagos = async () => {
+    if (USAR_SUPABASE) {
+        const { data, error } = await supabase
+            .from('pagos')
+            .select('*');
+        if (error) throw error;
+
+        return data.map(p => {
+            const detalles = typeof p.detalles === 'string' ? JSON.parse(p.detalles) : (p.detalles || {});
+            return {
+                id: p.id,
+                montoTotal: p.monto,
+                metodo: p.metodo_pago,
+                fecha: p.fecha_pago,
+                citaIds: detalles.citaIds || [],
+                items: detalles.items || [],
+                clienteNombre: detalles.clienteNombre || 'Sin nombre'
+            };
+        });
+    } else {
+        return JSON.parse(localStorage.getItem(KEYS.PAGOS) || '[]');
+    }
+};
+
+export const registrarPago = async (pago) => {
+    if (USAR_SUPABASE) {
+        const { data, error } = await supabase
+            .from('pagos')
+            .insert([{
+                monto: pago.montoTotal,
+                metodo_pago: pago.metodo,
+                fecha_pago: pago.fecha,
+                detalles: JSON.stringify({
+                    citaIds: pago.citaIds,
+                    items: pago.items,
+                    clienteNombre: pago.clienteNombre
+                })
+            }]);
+        if (error) throw error;
+        return data;
+    } else {
+        const pagos = JSON.parse(localStorage.getItem(KEYS.PAGOS) || '[]');
+        const nuevoPago = { ...pago, id: Date.now() };
+        pagos.push(nuevoPago);
+        localStorage.setItem(KEYS.PAGOS, JSON.stringify(pagos));
+        return nuevoPago;
+    }
+};
+
+// Marcar múltiples citas como pagadas
+export const marcarCitasPagadas = async (citaIds) => {
+    if (USAR_SUPABASE) {
+        const { error } = await supabase
+            .from('citas')
+            .update({ pagado: true })
+            .in('id', citaIds);
+        if (error) throw error;
+    } else {
+        const citas = JSON.parse(localStorage.getItem(KEYS.CITAS) || '[]');
+        const citasActualizadas = citas.map(c =>
+            citaIds.includes(c.id) ? { ...c, pagado: true } : c
+        );
+        localStorage.setItem(KEYS.CITAS, JSON.stringify(citasActualizadas));
     }
 };
