@@ -1,21 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Plus, Banknote } from 'lucide-react';
-import { ESTILISTAS, TRATAMIENTOS } from '../constants/salonData';
+import { ESTILISTAS, TRATAMIENTOS, HORARIO_INICIO, HORARIO_FIN } from '../constants/salonData';
 import PaymentModal from './PaymentModal';
 
 export default function AppointmentModal({ appointment, appointments, onClose, onSave, onDelete, onCancelar, onPagar, clients, onAddClient }) {
     const categoriasDisponibles = [...new Set(TRATAMIENTOS.map(t => t.categoria))];
+
+    // Generar slots de 15 minutos dentro del horario del salón
+    const slotsHorarios = useMemo(() => {
+        const slots = [];
+        for (let h = HORARIO_INICIO; h < HORARIO_FIN; h++) {
+            for (let m = 0; m < 60; m += 15) {
+                const hStr = h.toString().padStart(2, '0');
+                const mStr = m.toString().padStart(2, '0');
+                slots.push(`${hStr}:${mStr}`);
+            }
+        }
+        return slots;
+    }, []);
+
+    // Separar fecha y hora del appointment existente
+    const extraerFechaHora = (fechaISO) => {
+        const d = new Date(fechaISO);
+        const yyyy = d.getFullYear();
+        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+        const dd = d.getDate().toString().padStart(2, '0');
+        const hh = d.getHours().toString().padStart(2, '0');
+        const min = d.getMinutes().toString().padStart(2, '0');
+        return { soloFecha: `${yyyy}-${mm}-${dd}`, soloHora: `${hh}:${min}` };
+    };
+
+    const initFechaHora = appointment
+        ? extraerFechaHora(appointment.fecha)
+        : { soloFecha: new Date().toISOString().split('T')[0], soloHora: `${HORARIO_INICIO.toString().padStart(2, '0')}:00` };
+
     const [formData, setFormData] = useState(appointment ? {
         ...appointment,
         categoriaSeleccionada: appointment.tratamientoId
             ? TRATAMIENTOS.find(t => t.id === appointment.tratamientoId)?.categoria
-            : ''
+            : '',
+        soloFecha: initFechaHora.soloFecha,
+        soloHora: initFechaHora.soloHora,
     } : {
         clienteId: '',
         estilistaId: '',
         tratamientoId: '',
         categoriaSeleccionada: '',
-        fecha: new Date().toISOString().slice(0, 16),
+        soloFecha: initFechaHora.soloFecha,
+        soloHora: initFechaHora.soloHora,
         notas: ''
     });
 
@@ -50,12 +82,16 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
 
         const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(formData.tratamientoId));
 
+        // Combinar fecha + hora en un solo ISO string
+        const fechaCombinada = `${formData.soloFecha}T${formData.soloHora}`;
+
         try {
             await onSave({
                 ...formData,
                 clienteId: parseInt(formData.clienteId),
                 estilistaId: parseInt(formData.estilistaId),
                 tratamientoId: parseInt(formData.tratamientoId),
+                fecha: fechaCombinada,
                 duracion: tratamiento.duracion
             });
         } finally {
@@ -240,13 +276,26 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
                     )}
 
                     <div className="form-group">
-                        <label>Fecha y Hora</label>
+                        <label>Fecha</label>
                         <input
-                            type="datetime-local"
-                            value={formData.fecha}
-                            onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
+                            type="date"
+                            value={formData.soloFecha}
+                            onChange={(e) => setFormData({ ...formData, soloFecha: e.target.value })}
                             required
                         />
+                    </div>
+
+                    <div className="form-group">
+                        <label>Hora</label>
+                        <select
+                            value={formData.soloHora}
+                            onChange={(e) => setFormData({ ...formData, soloHora: e.target.value })}
+                            required
+                        >
+                            {slotsHorarios.map(slot => (
+                                <option key={slot} value={slot}>{slot}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="form-group">
