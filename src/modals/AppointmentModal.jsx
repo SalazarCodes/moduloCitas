@@ -273,17 +273,6 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
                                 Cancelar Cita
                             </button>
                         )}
-                        {esEdicion && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onDelete(appointment.id);
-                                }}
-                                className="btn btn-danger"
-                            >
-                                Eliminar
-                            </button>
-                        )}
                         <button
                             type="button"
                             onClick={onClose}
