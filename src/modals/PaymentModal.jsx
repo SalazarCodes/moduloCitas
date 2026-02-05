@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, CreditCard, Banknote, FileText, Save } from 'lucide-react';
 import { TRATAMIENTOS } from '../constants/salonData';
 
