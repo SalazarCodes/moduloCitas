@@ -68,7 +68,7 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
         const clienteIdActual = parseInt(appointment.clienteId);
 
         return appointments.filter(c => {
-            if (c.pagado) return false;
+            if (c.pagado || c.cancelado) return false;
             if (parseInt(c.clienteId) !== clienteIdActual) return false;
             const fechaCita = new Date(c.fecha).toDateString();
             return fechaCita === fechaCitaActual;
