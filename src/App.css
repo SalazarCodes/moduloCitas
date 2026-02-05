@@ -244,7 +244,112 @@ body {
   padding: 0.25rem 0;
 }
 
-/* Week View */
+/* Week View - Grid con franjas horarias */
+.week-view-grid {
+  display: flex;
+  flex-direction: column;
+  min-width: 900px;
+  overflow-x: auto;
+}
+
+.week-grid-header {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  gap: 1px;
+  background-color: #e5e7eb;
+  border-bottom: 2px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.week-hour-label-header {
+  background-color: #f9fafb;
+  padding: 0.5rem;
+}
+
+.week-day-header-cell {
+  background-color: #f9fafb;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.week-day-header-cell.today {
+  background-color: #eff6ff;
+}
+
+.week-day-header-cell .week-day-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.week-day-header-cell .week-day-number {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.week-day-header-cell.today .week-day-number {
+  color: #2563eb;
+}
+
+.week-grid-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.week-hour-row {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  gap: 1px;
+  background-color: #e5e7eb;
+  min-height: 50px;
+}
+
+.week-hour-label {
+  background-color: #f9fafb;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-align: right;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.week-cell {
+  background-color: white;
+  padding: 0.25rem;
+  min-height: 50px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.week-cell.today {
+  background-color: #fafbff;
+}
+
+.week-cell:hover {
+  background-color: #f9fafb;
+}
+
+/* Ajustar cards en vista semanal */
+.week-cell .appointment-card {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.week-cell .appointment-estilista {
+  font-size: 0.7rem;
+}
+
+.week-cell .appointment-time-compact {
+  font-size: 0.65rem;
+}
+
+/* Legacy week view (mantener por compatibilidad) */
 .week-view {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
