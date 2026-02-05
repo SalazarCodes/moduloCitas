@@ -340,6 +340,7 @@ export default function SalonAppointmentSystem() {
             setEditingUnavailability={setEditingUnavailability}
             setShowModal={setShowModal}
             setShowUnavailabilityModal={setShowUnavailabilityModal}
+            clients={clients}
           />
         )}
         {view === 'week' && (
@@ -352,6 +353,7 @@ export default function SalonAppointmentSystem() {
             setEditingUnavailability={setEditingUnavailability}
             setShowModal={setShowModal}
             setShowUnavailabilityModal={setShowUnavailabilityModal}
+            clients={clients}
           />
         )}
         {view === 'month' && (

@@ -2,7 +2,7 @@ import { HORARIO_INICIO, HORARIO_FIN, ESTILISTAS } from '../constants/salonData'
 import AppointmentCard from '../cards/AppointmentCard';
 import UnavailabilityCard from '../cards/UnavailabilityCard';
 
-export default function DayView({ currentDate, appointments, unavailabilities, filterEstilistaId, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
+export default function DayView({ currentDate, appointments, unavailabilities, filterEstilistaId, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal, clients = [] }) {
     const hours = Array.from({ length: HORARIO_FIN - HORARIO_INICIO }, (_, i) => i + HORARIO_INICIO);
 
     const dayAppointments = appointments.filter(apt => {
@@ -58,6 +58,7 @@ export default function DayView({ currentDate, appointments, unavailabilities, f
                                                 key={apt.id}
                                                 appointment={apt}
                                                 allAppointments={appointments}
+                                                clients={clients}
                                                 onClick={() => {
                                                     setEditingAppointment(apt);
                                                     setShowModal(true);

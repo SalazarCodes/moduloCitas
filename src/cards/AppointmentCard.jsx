@@ -1,10 +1,10 @@
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { ESTILISTAS, TRATAMIENTOS } from '../constants/salonData';
 
-export default function AppointmentCard({ appointment, onClick, compact = false, allAppointments = [] }) {
+export default function AppointmentCard({ appointment, onClick, compact = false, allAppointments = [], clients = [] }) {
     const estilista = ESTILISTAS.find(e => e.id === appointment.estilistaId);
     const tratamiento = TRATAMIENTOS.find(t => t.id === appointment.tratamientoId);
-    const client = JSON.parse(localStorage.getItem('salon_clients') || '[]').find(c => c.id === appointment.clienteId);
+    const client = clients.find(c => c.id === appointment.clienteId);
 
     // Multi-tratamiento: si existe el array con >1 items
     const esMulti = appointment.tratamientos && appointment.tratamientos.length > 1;

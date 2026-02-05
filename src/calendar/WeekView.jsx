@@ -1,7 +1,7 @@
 import AppointmentCard from '../cards/AppointmentCard';
 import UnavailabilityCard from '../cards/UnavailabilityCard';
 
-export default function WeekView({ currentDate, appointments, unavailabilities, filterEstilistaId, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal }) {
+export default function WeekView({ currentDate, appointments, unavailabilities, filterEstilistaId, setEditingAppointment, setEditingUnavailability, setShowModal, setShowUnavailabilityModal, clients = [] }) {
     const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
 
@@ -62,7 +62,7 @@ export default function WeekView({ currentDate, appointments, unavailabilities, 
                                             setShowModal(true);
                                         }}
                                     >
-                                        <AppointmentCard appointment={apt} compact allAppointments={appointments} />
+                                        <AppointmentCard appointment={apt} compact allAppointments={appointments} clients={clients} />
                                     </div>
                                 ))}
                             </div>
