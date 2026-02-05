@@ -24,15 +24,33 @@ export default function HistorialCitas({ appointments, clients }) {
         const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(a.tratamientoId));
 
         const fechaInicio = new Date(a.fecha);
-        const duracion = tratamiento?.duracion || a.duracion || 0;
+        const duracion = a.duracion || tratamiento?.duracion || 0;
         const fechaFin = new Date(fechaInicio.getTime() + duracion * 60000);
+
+        // Multi-tratamiento
+        const esMulti = a.tratamientos && a.tratamientos.length > 1;
+        let tratamientoNombre, estilistaNombre, estilistaColor;
+
+        if (esMulti) {
+          tratamientoNombre = a.tratamientos
+            .map(t => TRATAMIENTOS.find(tr => tr.id === t.tratamientoId)?.nombre || 'Servicio')
+            .join(', ');
+          estilistaNombre = [...new Set(
+            a.tratamientos.map(t => ESTILISTAS.find(e => e.id === t.estilistaId)?.nombre || 'Sin asignar')
+          )].join(', ');
+          estilistaColor = ESTILISTAS.find(e => e.id === a.tratamientos[0].estilistaId)?.color || '#6b7280';
+        } else {
+          tratamientoNombre = tratamiento?.nombre || 'Servicio general';
+          estilistaNombre = estilista?.nombre || 'Sin asignar';
+          estilistaColor = estilista?.color || '#6b7280';
+        }
 
         return {
           id: a.id,
           clienteNombre: cliente?.nombre || 'Sin nombre',
-          estilistaNombre: estilista?.nombre || 'Sin asignar',
-          estilistaColor: estilista?.color || '#6b7280',
-          tratamientoNombre: tratamiento?.nombre || 'Servicio general',
+          estilistaNombre,
+          estilistaColor,
+          tratamientoNombre,
           fechaInicio,
           fechaFin,
           duracion,

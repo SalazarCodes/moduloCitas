@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Plus, Banknote } from 'lucide-react';
+import { X, Plus, Banknote, Trash2 } from 'lucide-react';
 import { ESTILISTAS, TRATAMIENTOS, HORARIO_INICIO, HORARIO_FIN } from '../constants/salonData';
 import PaymentModal from './PaymentModal';
 
@@ -57,6 +57,9 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
     const [guardando, setGuardando] = useState(false);
     const selectedClient = formData.clienteId ? clients.find(c => c.id === parseInt(formData.clienteId)) : null;
 
+    // NUEVO: estado para multi-tratamiento
+    const [tratamientosAgregados, setTratamientosAgregados] = useState([]);
+
     // Determinar si estamos en modo edición (cita ya creada)
     const esEdicion = !!appointment;
 
@@ -75,25 +78,104 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
         });
     };
 
+    // Agregar el tratamiento actual a la lista
+    const handleAgregarTratamiento = () => {
+        if (!formData.estilistaId || !formData.tratamientoId) {
+            alert('Selecciona estilista y tratamiento antes de agregar');
+            return;
+        }
+
+        const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(formData.tratamientoId));
+        const estilista = ESTILISTAS.find(e => e.id === parseInt(formData.estilistaId));
+
+        setTratamientosAgregados(prev => [
+            ...prev,
+            {
+                tratamientoId: parseInt(formData.tratamientoId),
+                estilistaId: parseInt(formData.estilistaId),
+                nombre: tratamiento.nombre,
+                estilistaNombre: estilista.nombre,
+                estilistaColor: estilista.color,
+                duracion: tratamiento.duracion,
+            }
+        ]);
+
+        // Resetear selectores de tratamiento (mantener estilista)
+        setFormData(prev => ({
+            ...prev,
+            categoriaSeleccionada: '',
+            tratamientoId: '',
+        }));
+    };
+
+    // Quitar un tratamiento de la lista
+    const handleQuitarTratamiento = (index) => {
+        setTratamientosAgregados(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // Calcular duración total de tratamientos agregados
+    const duracionTotal = tratamientosAgregados.reduce((sum, t) => sum + t.duracion, 0);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (guardando) return;
         setGuardando(true);
 
-        const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(formData.tratamientoId));
-
         // Combinar fecha + hora en un solo ISO string
         const fechaCombinada = `${formData.soloFecha}T${formData.soloHora}`;
 
         try {
-            await onSave({
-                ...formData,
-                clienteId: parseInt(formData.clienteId),
-                estilistaId: parseInt(formData.estilistaId),
-                tratamientoId: parseInt(formData.tratamientoId),
-                fecha: fechaCombinada,
-                duracion: tratamiento.duracion
-            });
+            // Si hay tratamientos agregados O selectores llenos, construir multi-tratamiento
+            let tratamientosFinales = [...tratamientosAgregados];
+
+            // Auto-agregar si los selectores tienen valores y no se presionó "+"
+            if (formData.estilistaId && formData.tratamientoId) {
+                const tratamiento = TRATAMIENTOS.find(t => t.id === parseInt(formData.tratamientoId));
+                const estilista = ESTILISTAS.find(e => e.id === parseInt(formData.estilistaId));
+                tratamientosFinales.push({
+                    tratamientoId: parseInt(formData.tratamientoId),
+                    estilistaId: parseInt(formData.estilistaId),
+                    nombre: tratamiento.nombre,
+                    estilistaNombre: estilista.nombre,
+                    estilistaColor: estilista.color,
+                    duracion: tratamiento.duracion,
+                });
+            }
+
+            if (tratamientosFinales.length === 0) {
+                alert('Agrega al menos un tratamiento');
+                setGuardando(false);
+                return;
+            }
+
+            if (tratamientosFinales.length === 1) {
+                // Cita normal de un solo tratamiento (backward compat, sin array)
+                const unico = tratamientosFinales[0];
+                await onSave({
+                    ...formData,
+                    clienteId: parseInt(formData.clienteId),
+                    estilistaId: unico.estilistaId,
+                    tratamientoId: unico.tratamientoId,
+                    fecha: fechaCombinada,
+                    duracion: unico.duracion,
+                });
+            } else {
+                // Multi-tratamiento: campos principales = primer tratamiento
+                const primero = tratamientosFinales[0];
+                const duracionSuma = tratamientosFinales.reduce((s, t) => s + t.duracion, 0);
+                await onSave({
+                    ...formData,
+                    clienteId: parseInt(formData.clienteId),
+                    estilistaId: primero.estilistaId,
+                    tratamientoId: primero.tratamientoId,
+                    fecha: fechaCombinada,
+                    duracion: duracionSuma,
+                    tratamientos: tratamientosFinales.map(t => ({
+                        tratamientoId: t.tratamientoId,
+                        estilistaId: t.estilistaId,
+                    })),
+                });
+            }
         } finally {
             setGuardando(false);
         }
@@ -132,6 +214,17 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
             />
         );
     }
+
+    // Formatear duración para mostrar
+    const formatDuracion = (min) => {
+        const horas = Math.floor(min / 60);
+        const minutos = min % 60;
+        if (horas > 0) return `${horas}:${minutos.toString().padStart(2, '0')} hrs`;
+        return `${minutos} min`;
+    };
+
+    // En modo edición, si la cita tiene tratamientos array, mostrarlos como solo lectura
+    const tieneMultiTratamiento = esEdicion && appointment.tratamientos && appointment.tratamientos.length > 1;
 
     return (
         <div className="modal-overlay">
@@ -214,65 +307,132 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
                         )}
                     </div>
 
-                    <div className="form-group">
-                        <label>Responsable</label>
-                        <select
-                            value={formData.estilistaId}
-                            onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
-                            required
-                        >
-                            <option value="">Seleccionar</option>
-                            {ESTILISTAS.map(estilista => (
-                                <option key={estilista.id} value={estilista.id}>
-                                    {estilista.nombre}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="form-group">
-                        <label>Categoría</label>
-                        <select
-                            value={formData.categoriaSeleccionada || ''}
-                            onChange={(e) => setFormData({ ...formData, categoriaSeleccionada: e.target.value, tratamientoId: '' })}
-                            required
-                        >
-                            <option value="">Seleccionar categoría</option>
-                            {categoriasDisponibles.map(categoria => (
-                                <option key={categoria} value={categoria}>
-                                    {categoria}
-                                </option>
-                            ))}
-
-                        </select>
-                    </div>
-
-                    {formData.categoriaSeleccionada && (
+                    {/* En modo edición con multi-tratamiento: mostrar lista solo lectura */}
+                    {tieneMultiTratamiento ? (
                         <div className="form-group">
-                            <label>Tratamiento</label>
-                            <select
-                                value={formData.tratamientoId}
-                                onChange={(e) => setFormData({ ...formData, tratamientoId: e.target.value })}
-                                required
-                            >
-                                <option value="">Seleccionar tratamiento</option>
-                                {TRATAMIENTOS
-                                    .filter(t => t.categoria === formData.categoriaSeleccionada)
-                                    .map(tratamiento => {
-                                        const horas = Math.floor(tratamiento.duracion / 60);
-                                        const minutos = tratamiento.duracion % 60;
-                                        const duracionTexto = horas > 0
-                                            ? `${horas}:${minutos.toString().padStart(2, '0')} hrs`
-                                            : `${minutos} min`;
-
-                                        return (
-                                            <option key={tratamiento.id} value={tratamiento.id}>
-                                                {tratamiento.nombre} ({duracionTexto})
-                                            </option>
-                                        );
-                                    })}
-                            </select>
+                            <label>Tratamientos</label>
+                            <div className="tratamientos-agregados">
+                                {appointment.tratamientos.map((t, index) => {
+                                    const trat = TRATAMIENTOS.find(tr => tr.id === t.tratamientoId);
+                                    const est = ESTILISTAS.find(e => e.id === t.estilistaId);
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="tratamiento-item"
+                                            style={{ borderLeftColor: est?.color || '#6b7280' }}
+                                        >
+                                            <div className="tratamiento-item-info">
+                                                <span className="tratamiento-item-nombre">{trat?.nombre || 'Servicio'}</span>
+                                                <span className="tratamiento-item-detalle">
+                                                    {est?.nombre || 'Sin asignar'} · {formatDuracion(trat?.duracion || 0)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <div className="duracion-total">
+                                    Duración total: {formatDuracion(appointment.duracion)}
+                                </div>
+                            </div>
                         </div>
+                    ) : (
+                        <>
+                            {/* Selectores normales de estilista/categoría/tratamiento */}
+                            <div className="form-group">
+                                <label>Responsable</label>
+                                <select
+                                    value={formData.estilistaId}
+                                    onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
+                                    required={tratamientosAgregados.length === 0}
+                                >
+                                    <option value="">Seleccionar</option>
+                                    {ESTILISTAS.map(estilista => (
+                                        <option key={estilista.id} value={estilista.id}>
+                                            {estilista.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Categoría</label>
+                                <select
+                                    value={formData.categoriaSeleccionada || ''}
+                                    onChange={(e) => setFormData({ ...formData, categoriaSeleccionada: e.target.value, tratamientoId: '' })}
+                                    required={tratamientosAgregados.length === 0}
+                                >
+                                    <option value="">Seleccionar categoría</option>
+                                    {categoriasDisponibles.map(categoria => (
+                                        <option key={categoria} value={categoria}>
+                                            {categoria}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {formData.categoriaSeleccionada && (
+                                <div className="form-group">
+                                    <label>Tratamiento</label>
+                                    <select
+                                        value={formData.tratamientoId}
+                                        onChange={(e) => setFormData({ ...formData, tratamientoId: e.target.value })}
+                                        required={tratamientosAgregados.length === 0}
+                                    >
+                                        <option value="">Seleccionar tratamiento</option>
+                                        {TRATAMIENTOS
+                                            .filter(t => t.categoria === formData.categoriaSeleccionada)
+                                            .map(tratamiento => (
+                                                <option key={tratamiento.id} value={tratamiento.id}>
+                                                    {tratamiento.nombre} ({formatDuracion(tratamiento.duracion)})
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Botón agregar tratamiento (solo en creación o edición sin multi) */}
+                            {!esEdicion && (
+                                <button
+                                    type="button"
+                                    className="btn-agregar-tratamiento"
+                                    onClick={handleAgregarTratamiento}
+                                    disabled={!formData.estilistaId || !formData.tratamientoId}
+                                >
+                                    <Plus size={16} />
+                                    Agregar tratamiento
+                                </button>
+                            )}
+
+                            {/* Lista de tratamientos agregados */}
+                            {tratamientosAgregados.length > 0 && (
+                                <div className="tratamientos-agregados">
+                                    {tratamientosAgregados.map((t, index) => (
+                                        <div
+                                            key={index}
+                                            className="tratamiento-item"
+                                            style={{ borderLeftColor: t.estilistaColor }}
+                                        >
+                                            <div className="tratamiento-item-info">
+                                                <span className="tratamiento-item-nombre">{t.nombre}</span>
+                                                <span className="tratamiento-item-detalle">
+                                                    {t.estilistaNombre} · {formatDuracion(t.duracion)}
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="tratamiento-item-remove"
+                                                onClick={() => handleQuitarTratamiento(index)}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <div className="duracion-total">
+                                        Duración total: {formatDuracion(duracionTotal)}
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     <div className="form-group">

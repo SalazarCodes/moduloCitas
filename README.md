@@ -1,70 +1,108 @@
-# Getting Started with Create React App
+# MUSA - Sistema de Gestión de Citas para Salón de Belleza
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Sistema web para la gestión integral de citas, clientes y pagos de un centro de belleza. Desarrollado con React y Supabase.
 
-## Available Scripts
+## Descripción
 
-In the project directory, you can run:
+MUSA es una aplicación diseñada para facilitar la administración diaria de un salón de belleza, permitiendo gestionar citas, clientes, estilistas, tratamientos y pagos de forma eficiente.
 
-### `npm start`
+## Módulos del Sistema
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 1. Calendario de Citas
+- **Vista Día**: Muestra las citas del día organizadas por hora
+- **Vista Semana**: Visualización de 7 días con todas las citas
+- **Vista Mes**: Calendario mensual con resumen de citas por día
+- Filtrado por estilista
+- Código de colores por estilista para fácil identificación
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 2. Gestión de Citas
+- Crear, editar y cancelar citas
+- Soporte para **multi-tratamiento**: una cita puede incluir múltiples servicios con diferentes estilistas
+- Asignación de cliente, estilista, categoría y tratamiento
+- Notas adicionales por cita
+- Indicadores visuales de estado (pagado, cancelado)
+- Conteo automático de sesiones para tratamientos recurrentes
 
-### `npm test`
+### 3. Gestión de Clientes
+- Registro de clientes con nombre, teléfono y DNI
+- Creación rápida de clientes desde el modal de citas
+- Edición y eliminación de clientes
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 4. Gestión de Ausencias
+- Registro de indisponibilidad de estilistas
+- Visualización de ausencias en el calendario
 
-### `npm run build`
+### 5. Sistema de Cobros
+- Registro de pagos con múltiples métodos (Yape, Plin, Efectivo, Tarjeta, Transferencia)
+- Soporte para cobrar múltiples servicios en una sola transacción
+- Generación de **Nota de Venta** en formato de papel térmico (58mm)
+- Detalle de servicios con precios individuales
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 6. Historial de Pagos
+- Registro completo de todos los pagos realizados
+- Filtrado por fecha
+- Detalle de servicios cobrados por transacción
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 7. Historial de Citas
+- Visualización de citas finalizadas y canceladas
+- Filtrado por fecha
+- Estado de cada cita (Finalizado/Cancelado)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Tecnologías
 
-### `npm run eject`
+- **Frontend**: React 18
+- **Base de datos**: Supabase (PostgreSQL)
+- **Estilos**: CSS personalizado
+- **Iconos**: Lucide React
+- **Despliegue**: Vercel
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Configuración
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Variables de entorno
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Crear un archivo `.env` con las credenciales de Supabase:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```
+REACT_APP_SUPABASE_URL=tu_url_de_supabase
+REACT_APP_SUPABASE_ANON_KEY=tu_anon_key
+```
 
-## Learn More
+### Instalación
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+npm install
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Desarrollo local
 
-### Code Splitting
+```bash
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+La aplicación estará disponible en [http://localhost:3000](http://localhost:3000)
 
-### Analyzing the Bundle Size
+### Producción
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```bash
+npm run build
+```
 
-### Making a Progressive Web App
+## Estructura de la Base de Datos
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Tablas en Supabase
 
-### Advanced Configuration
+- **clientes**: id, nombre, telefono, email, notas
+- **citas**: id, clienteid, estilistaid, tratamientoid, fecha, duracion, notas, pagado, cancelado, tratamientos (jsonb)
+- **ausencias**: id, estilistaid, fechainicio, fechafin, motivo
+- **pagos**: id, monto, metodo_pago, fecha_pago, detalles (jsonb)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Respaldos
 
-### Deployment
+El sistema incluye:
+- Exportación manual de datos en formato JSON
+- Importación de respaldos
+- Recordatorio automático si no se ha hecho backup en 7 días
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Licencia
 
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Proyecto privado - MUSA Centro de Belleza

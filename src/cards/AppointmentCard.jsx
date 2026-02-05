@@ -6,29 +6,31 @@ export default function AppointmentCard({ appointment, onClick, compact = false,
     const tratamiento = TRATAMIENTOS.find(t => t.id === appointment.tratamientoId);
     const client = JSON.parse(localStorage.getItem('salon_clients') || '[]').find(c => c.id === appointment.clienteId);
 
+    // Multi-tratamiento: si existe el array con >1 items
+    const esMulti = appointment.tratamientos && appointment.tratamientos.length > 1;
+
     // --- LÓGICA DE SESIONES ---
     let etiquetaSesion = "";
 
-    // 1. Verificamos si el tratamiento tiene el flag activado y si hay citas para buscar
-    if (tratamiento?.conteoSesiones && allAppointments.length > 0) {
-        // 2. Filtramos todas las citas pasadas o futuras de ESTE cliente con ESTE tratamiento
+    // Solo aplica para citas de un solo tratamiento
+    if (!esMulti && tratamiento?.conteoSesiones && allAppointments.length > 0) {
         const historialCitas = allAppointments
             .filter(a =>
                 a.clienteId === appointment.clienteId &&
                 a.tratamientoId === appointment.tratamientoId
             )
-            // 3. Ordenamos por fecha para saber el orden cronológico real
             .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-        // 4. Buscamos en qué posición (índice) está la cita actual
         const indice = historialCitas.findIndex(a => a.id === appointment.id);
 
-        // 5. Si la encontramos, el número de sesión es índice + 1
         if (indice !== -1) {
             etiquetaSesion = ` (Sesión ${indice + 1})`;
         }
     }
     // ---------------------------
+
+    // Duración a mostrar: usar appointment.duracion si existe (viene sumada en multi), sino del tratamiento
+    const duracionMostrar = appointment.duracion || tratamiento?.duracion || 0;
 
     return (
         <div
@@ -40,7 +42,7 @@ export default function AppointmentCard({ appointment, onClick, compact = false,
             }}
         >
             <div className="appointment-estilista" style={{ color: estilista?.color }}>
-                {estilista?.nombre}
+                {client?.nombre || 'Sin cliente'}
                 {appointment.pagado && (
                     <span className="pagado-badge">
                         <CheckCircle size={14} />
@@ -56,14 +58,27 @@ export default function AppointmentCard({ appointment, onClick, compact = false,
             </div>
             {!compact && (
                 <>
-                    <div className="appointment-client">{client?.nombre}</div>
-                    <div className="appointment-treatment">
-                        {tratamiento?.nombre}
-                        <span className="text-xs font-semibold text-gray-600">{etiquetaSesion}</span>
-                    </div>
+                    {esMulti ? (
+                        <div className="appointment-treatment">
+                            {appointment.tratamientos.map((t, i) => {
+                                const trat = TRATAMIENTOS.find(tr => tr.id === t.tratamientoId);
+                                const est = ESTILISTAS.find(e => e.id === t.estilistaId);
+                                return (
+                                    <div key={i} className="appointment-multi-line">
+                                        {trat?.nombre || 'Servicio'} - {est?.nombre || 'Sin asignar'}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="appointment-treatment">
+                            {tratamiento?.nombre} - {estilista?.nombre}
+                            <span className="text-xs font-semibold text-gray-600">{etiquetaSesion}</span>
+                        </div>
+                    )}
                     <div className="appointment-time">
                         <Clock size={14} />
-                        {new Date(appointment.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {tratamiento?.duracion} min
+                        {new Date(appointment.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {duracionMostrar} min
                     </div>
                 </>
             )}

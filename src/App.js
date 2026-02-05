@@ -454,9 +454,19 @@ export default function SalonAppointmentSystem() {
             }
           }}
           clients={clients}
-          onAddClient={(client) => {
-            setClients(prev => [...prev, { ...client, id: Date.now() }]);
-            return Date.now();
+          onAddClient={async (client) => {
+            try {
+              // Guardar en BD (Supabase o localStorage)
+              const clienteGuardado = await guardarCliente({ ...client, id: Date.now() });
+              setClients(prev => [...prev, clienteGuardado]);
+              return clienteGuardado.id;
+            } catch (error) {
+              console.error("Error al guardar cliente:", error);
+              // Fallback: solo estado local si falla
+              const tempId = Date.now();
+              setClients(prev => [...prev, { ...client, id: tempId }]);
+              return tempId;
+            }
           }}
         />
       )}
