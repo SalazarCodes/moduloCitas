@@ -6,11 +6,17 @@ import PaymentModal from './PaymentModal';
 export default function AppointmentModal({ appointment, appointments, onClose, onSave, onDelete, onCancelar, onPagar, clients, onAddClient }) {
     const categoriasDisponibles = [...new Set(TRATAMIENTOS.map(t => t.categoria))];
 
-    // Generar slots de 15 minutos dentro del horario del salón
+    // Generar slots de 15 minutos dentro del horario del salón (hasta 20:30)
     const slotsHorarios = useMemo(() => {
         const slots = [];
-        for (let h = HORARIO_INICIO; h < HORARIO_FIN; h++) {
+        const HORA_ULTIMO_SLOT = 20;
+        const MINUTO_ULTIMO_SLOT = 30;
+
+        for (let h = HORARIO_INICIO; h <= HORA_ULTIMO_SLOT; h++) {
             for (let m = 0; m < 60; m += 15) {
+                // Detenerse después de 20:30
+                if (h === HORA_ULTIMO_SLOT && m > MINUTO_ULTIMO_SLOT) break;
+
                 const hStr = h.toString().padStart(2, '0');
                 const mStr = m.toString().padStart(2, '0');
                 slots.push(`${hStr}:${mStr}`);
