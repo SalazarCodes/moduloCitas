@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { X, Plus, Banknote, Trash2 } from 'lucide-react';
-import { ESTILISTAS, TRATAMIENTOS, HORARIO_INICIO, HORARIO_FIN } from '../constants/salonData';
+import { ESTILISTAS, TRATAMIENTOS, HORARIO_INICIO } from '../constants/salonData';
 import PaymentModal from './PaymentModal';
 
 export default function AppointmentModal({ appointment, appointments, onClose, onSave, onDelete, onCancelar, onPagar, clients, onAddClient }) {
