@@ -4,6 +4,7 @@ export const ESTILISTAS = [
     { id: 3, nombre: "Yazmine", especialidad: "Uñas", color: "#10B981" },
     { id: 4, nombre: "Kati", especialidad: "Todo terreno", color: "#9F0BF5" },
     { id: 5, nombre: "Sharom", especialidad: "Cara", color: "#8F0A3D" },
+    { id: 6, nombre: "Jimena", especialidad: "Uñas", color: "#F09813" },
 ];
 
 export const TRATAMIENTOS = [

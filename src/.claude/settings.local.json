@@ -3,7 +3,13 @@
     "allow": [
       "Bash(ls:*)",
       "Bash(npx react-scripts build)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(nvm install:*)",
+      "Bash(nvm ls:*)",
+      "Bash(npm start)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
