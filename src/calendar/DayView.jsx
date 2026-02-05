@@ -6,6 +6,7 @@ export default function DayView({ currentDate, appointments, unavailabilities, f
     const hours = Array.from({ length: HORARIO_FIN - HORARIO_INICIO }, (_, i) => i + HORARIO_INICIO);
 
     const dayAppointments = appointments.filter(apt => {
+        if (apt.cancelado) return false; // Ocultar citas canceladas
         const aptDate = new Date(apt.fecha);
         const coincideFecha = aptDate.toDateString() === currentDate.toDateString();
         const coincideEstilista = filterEstilistaId ? apt.estilistaId === parseInt(filterEstilistaId) : true;

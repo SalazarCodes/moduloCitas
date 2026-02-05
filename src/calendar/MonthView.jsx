@@ -28,6 +28,7 @@ export default function MonthView({ currentDate, appointments, unavailabilities,
                 <div className="month-grid">
                     {days.map((day, index) => {
                         const dayAppointments = appointments.filter(apt => {
+                            if (apt.cancelado) return false; // Ocultar citas canceladas
                             const aptDate = new Date(apt.fecha);
                             const coincideFecha = aptDate.toDateString() === day.toDateString();
                             const coincideEstilista = filterEstilistaId ? apt.estilistaId === parseInt(filterEstilistaId) : true;
