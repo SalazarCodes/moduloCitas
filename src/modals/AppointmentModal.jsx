@@ -36,9 +36,10 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
 
     const [formData, setFormData] = useState(appointment ? {
         ...appointment,
-        categoriaSeleccionada: appointment.tratamientoId
-            ? TRATAMIENTOS.find(t => t.id === appointment.tratamientoId)?.categoria
-            : '',
+        // Limpiar selectores en edición (tratamientos ya están en la lista)
+        estilistaId: '',
+        tratamientoId: '',
+        categoriaSeleccionada: '',
         soloFecha: initFechaHora.soloFecha,
         soloHora: initFechaHora.soloHora,
     } : {
@@ -58,7 +59,37 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
     const selectedClient = formData.clienteId ? clients.find(c => c.id === parseInt(formData.clienteId)) : null;
 
     // NUEVO: estado para multi-tratamiento
-    const [tratamientosAgregados, setTratamientosAgregados] = useState([]);
+    // En edición, inicializar con los tratamientos existentes
+    const [tratamientosAgregados, setTratamientosAgregados] = useState(() => {
+        if (appointment?.tratamientos && appointment.tratamientos.length > 0) {
+            return appointment.tratamientos.map(t => {
+                const trat = TRATAMIENTOS.find(tr => tr.id === t.tratamientoId);
+                const est = ESTILISTAS.find(e => e.id === t.estilistaId);
+                return {
+                    tratamientoId: t.tratamientoId,
+                    estilistaId: t.estilistaId,
+                    nombre: trat?.nombre || 'Servicio',
+                    estilistaNombre: est?.nombre || 'Sin asignar',
+                    estilistaColor: est?.color || '#6b7280',
+                    duracion: trat?.duracion || 0,
+                };
+            });
+        }
+        // Si es edición de cita simple (sin array tratamientos), cargar el tratamiento único
+        if (appointment?.tratamientoId) {
+            const trat = TRATAMIENTOS.find(tr => tr.id === appointment.tratamientoId);
+            const est = ESTILISTAS.find(e => e.id === appointment.estilistaId);
+            return [{
+                tratamientoId: appointment.tratamientoId,
+                estilistaId: appointment.estilistaId,
+                nombre: trat?.nombre || 'Servicio',
+                estilistaNombre: est?.nombre || 'Sin asignar',
+                estilistaColor: est?.color || '#6b7280',
+                duracion: trat?.duracion || 0,
+            }];
+        }
+        return [];
+    });
 
     // Determinar si estamos en modo edición (cita ya creada)
     const esEdicion = !!appointment;
@@ -223,8 +254,7 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
         return `${minutos} min`;
     };
 
-    // En modo edición, si la cita tiene tratamientos array, mostrarlos como solo lectura
-    const tieneMultiTratamiento = esEdicion && appointment.tratamientos && appointment.tratamientos.length > 1;
+    // Ya no usamos solo lectura - siempre editable
 
     return (
         <div className="modal-overlay">
@@ -307,133 +337,102 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
                         )}
                     </div>
 
-                    {/* En modo edición con multi-tratamiento: mostrar lista solo lectura */}
-                    {tieneMultiTratamiento ? (
+                    {/* Lista de tratamientos agregados (mostrar primero si hay) */}
+                    {tratamientosAgregados.length > 0 && (
                         <div className="form-group">
                             <label>Tratamientos</label>
                             <div className="tratamientos-agregados">
-                                {appointment.tratamientos.map((t, index) => {
-                                    const trat = TRATAMIENTOS.find(tr => tr.id === t.tratamientoId);
-                                    const est = ESTILISTAS.find(e => e.id === t.estilistaId);
-                                    return (
-                                        <div
-                                            key={index}
-                                            className="tratamiento-item"
-                                            style={{ borderLeftColor: est?.color || '#6b7280' }}
-                                        >
-                                            <div className="tratamiento-item-info">
-                                                <span className="tratamiento-item-nombre">{trat?.nombre || 'Servicio'}</span>
-                                                <span className="tratamiento-item-detalle">
-                                                    {est?.nombre || 'Sin asignar'} · {formatDuracion(trat?.duracion || 0)}
-                                                </span>
-                                            </div>
+                                {tratamientosAgregados.map((t, index) => (
+                                    <div
+                                        key={index}
+                                        className="tratamiento-item"
+                                        style={{ borderLeftColor: t.estilistaColor }}
+                                    >
+                                        <div className="tratamiento-item-info">
+                                            <span className="tratamiento-item-nombre">{t.nombre}</span>
+                                            <span className="tratamiento-item-detalle">
+                                                {t.estilistaNombre} · {formatDuracion(t.duracion)}
+                                            </span>
                                         </div>
-                                    );
-                                })}
+                                        <button
+                                            type="button"
+                                            className="tratamiento-item-remove"
+                                            onClick={() => handleQuitarTratamiento(index)}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
                                 <div className="duracion-total">
-                                    Duración total: {formatDuracion(appointment.duracion)}
+                                    Duración total: {formatDuracion(duracionTotal)}
                                 </div>
                             </div>
                         </div>
-                    ) : (
-                        <>
-                            {/* Selectores normales de estilista/categoría/tratamiento */}
-                            <div className="form-group">
-                                <label>Responsable</label>
-                                <select
-                                    value={formData.estilistaId}
-                                    onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
-                                    required={tratamientosAgregados.length === 0}
-                                >
-                                    <option value="">Seleccionar</option>
-                                    {ESTILISTAS.map(estilista => (
-                                        <option key={estilista.id} value={estilista.id}>
-                                            {estilista.nombre}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label>Categoría</label>
-                                <select
-                                    value={formData.categoriaSeleccionada || ''}
-                                    onChange={(e) => setFormData({ ...formData, categoriaSeleccionada: e.target.value, tratamientoId: '' })}
-                                    required={tratamientosAgregados.length === 0}
-                                >
-                                    <option value="">Seleccionar categoría</option>
-                                    {categoriasDisponibles.map(categoria => (
-                                        <option key={categoria} value={categoria}>
-                                            {categoria}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {formData.categoriaSeleccionada && (
-                                <div className="form-group">
-                                    <label>Tratamiento</label>
-                                    <select
-                                        value={formData.tratamientoId}
-                                        onChange={(e) => setFormData({ ...formData, tratamientoId: e.target.value })}
-                                        required={tratamientosAgregados.length === 0}
-                                    >
-                                        <option value="">Seleccionar tratamiento</option>
-                                        {TRATAMIENTOS
-                                            .filter(t => t.categoria === formData.categoriaSeleccionada)
-                                            .map(tratamiento => (
-                                                <option key={tratamiento.id} value={tratamiento.id}>
-                                                    {tratamiento.nombre} ({formatDuracion(tratamiento.duracion)})
-                                                </option>
-                                            ))}
-                                    </select>
-                                </div>
-                            )}
-
-                            {/* Botón agregar tratamiento (solo en creación o edición sin multi) */}
-                            {!esEdicion && (
-                                <button
-                                    type="button"
-                                    className="btn-agregar-tratamiento"
-                                    onClick={handleAgregarTratamiento}
-                                    disabled={!formData.estilistaId || !formData.tratamientoId}
-                                >
-                                    <Plus size={16} />
-                                    Agregar tratamiento
-                                </button>
-                            )}
-
-                            {/* Lista de tratamientos agregados */}
-                            {tratamientosAgregados.length > 0 && (
-                                <div className="tratamientos-agregados">
-                                    {tratamientosAgregados.map((t, index) => (
-                                        <div
-                                            key={index}
-                                            className="tratamiento-item"
-                                            style={{ borderLeftColor: t.estilistaColor }}
-                                        >
-                                            <div className="tratamiento-item-info">
-                                                <span className="tratamiento-item-nombre">{t.nombre}</span>
-                                                <span className="tratamiento-item-detalle">
-                                                    {t.estilistaNombre} · {formatDuracion(t.duracion)}
-                                                </span>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className="tratamiento-item-remove"
-                                                onClick={() => handleQuitarTratamiento(index)}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                    <div className="duracion-total">
-                                        Duración total: {formatDuracion(duracionTotal)}
-                                    </div>
-                                </div>
-                            )}
-                        </>
                     )}
+
+                    {/* Selectores para agregar más tratamientos */}
+                    <div className="form-group">
+                        <label>{tratamientosAgregados.length > 0 ? 'Agregar otro tratamiento' : 'Responsable'}</label>
+                        <select
+                            value={formData.estilistaId}
+                            onChange={(e) => setFormData({ ...formData, estilistaId: e.target.value })}
+                            required={tratamientosAgregados.length === 0}
+                        >
+                            <option value="">Seleccionar</option>
+                            {ESTILISTAS.map(estilista => (
+                                <option key={estilista.id} value={estilista.id}>
+                                    {estilista.nombre}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Categoría</label>
+                        <select
+                            value={formData.categoriaSeleccionada || ''}
+                            onChange={(e) => setFormData({ ...formData, categoriaSeleccionada: e.target.value, tratamientoId: '' })}
+                            required={tratamientosAgregados.length === 0}
+                        >
+                            <option value="">Seleccionar categoría</option>
+                            {categoriasDisponibles.map(categoria => (
+                                <option key={categoria} value={categoria}>
+                                    {categoria}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {formData.categoriaSeleccionada && (
+                        <div className="form-group">
+                            <label>Tratamiento</label>
+                            <select
+                                value={formData.tratamientoId}
+                                onChange={(e) => setFormData({ ...formData, tratamientoId: e.target.value })}
+                                required={tratamientosAgregados.length === 0}
+                            >
+                                <option value="">Seleccionar tratamiento</option>
+                                {TRATAMIENTOS
+                                    .filter(t => t.categoria === formData.categoriaSeleccionada)
+                                    .map(tratamiento => (
+                                        <option key={tratamiento.id} value={tratamiento.id}>
+                                            {tratamiento.nombre} ({formatDuracion(tratamiento.duracion)})
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Botón agregar tratamiento (siempre visible) */}
+                    <button
+                        type="button"
+                        className="btn-agregar-tratamiento"
+                        onClick={handleAgregarTratamiento}
+                        disabled={!formData.estilistaId || !formData.tratamientoId}
+                    >
+                        <Plus size={16} />
+                        Agregar tratamiento
+                    </button>
 
                     <div className="form-group">
                         <label>Fecha</label>
