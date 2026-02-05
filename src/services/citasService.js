@@ -28,14 +28,28 @@ export const obtenerCitas = async () => {
         if (error) throw error;
 
         // TRADUCCIÓN HÍBRIDA (Busca mayúsculas O minúsculas)
-        return data.map(c => ({
-            ...c,
-            clienteId: getValorSeguro(c, 'clienteId'),
-            estilistaId: getValorSeguro(c, 'estilistaId'),
-            tratamientoId: getValorSeguro(c, 'tratamientoId'),
-            pagado: c.pagado || false,
-            categoriaSeleccionada: '' // Reiniciamos esto para el front
-        }));
+        return data.map(c => {
+            // Parsear tratamientos si viene como string JSON
+            let tratamientos = c.tratamientos;
+            if (typeof tratamientos === 'string') {
+                try {
+                    tratamientos = JSON.parse(tratamientos);
+                } catch (e) {
+                    tratamientos = null;
+                }
+            }
+
+            return {
+                ...c,
+                clienteId: getValorSeguro(c, 'clienteId'),
+                estilistaId: getValorSeguro(c, 'estilistaId'),
+                tratamientoId: getValorSeguro(c, 'tratamientoId'),
+                pagado: c.pagado || false,
+                cancelado: c.cancelado || false,
+                tratamientos: tratamientos,
+                categoriaSeleccionada: '' // Reiniciamos esto para el front
+            };
+        });
     } else {
         return JSON.parse(localStorage.getItem(KEYS.CITAS) || '[]');
     }
@@ -64,7 +78,10 @@ export const guardarCita = async (cita) => {
             fecha: new Date(cita.fecha).toISOString(),
             notas: cita.notas || '',
             duracion: parseInt(cita.duracion || 0),
-            pagado: cita.pagado || false
+            pagado: cita.pagado || false,
+            cancelado: cita.cancelado || false,
+            // Multi-tratamiento: guardar como JSONB si existe
+            tratamientos: cita.tratamientos ? JSON.stringify(cita.tratamientos) : null
         };
 
         // Lógica de ID (Evitar timestamps gigantes)
@@ -84,11 +101,23 @@ export const guardarCita = async (cita) => {
 
         // Traducir respuesta de vuelta
         const guardada = data[0];
+
+        // Parsear tratamientos si viene como string
+        let tratamientos = guardada.tratamientos;
+        if (typeof tratamientos === 'string') {
+            try {
+                tratamientos = JSON.parse(tratamientos);
+            } catch (e) {
+                tratamientos = null;
+            }
+        }
+
         return {
             ...guardada,
             clienteId: getValorSeguro(guardada, 'clienteId'),
             estilistaId: getValorSeguro(guardada, 'estilistaId'),
-            tratamientoId: getValorSeguro(guardada, 'tratamientoId')
+            tratamientoId: getValorSeguro(guardada, 'tratamientoId'),
+            tratamientos: tratamientos
         };
 
     } else {
