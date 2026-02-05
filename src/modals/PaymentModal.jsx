@@ -408,7 +408,7 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
                             <option value="Plin">Plin</option>
                             <option value="Efectivo">Efectivo</option>
                             <option value="Tarjeta">Tarjeta de Crédito/Débito</option>
-                            <option value="Transferencia">Transferencia Bancaria</option>
+                            <option value="QR Musa">QR Musa</option>
                         </select>
                     </div>
 
