@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Receipt, ClipboardList, Scissors } from 'lucide-react';
+import { Calendar, Receipt, ClipboardList } from 'lucide-react';
 
 export default function Sidebar({ moduloActivo, onCambiarModulo }) {
   const items = [
@@ -11,7 +11,7 @@ export default function Sidebar({ moduloActivo, onCambiarModulo }) {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <Scissors size={28} className="sidebar-logo-icon" />
+        <img src="/images/logo.png" alt="Musa Logo" className="sidebar-logo-img" />
         <span className="sidebar-title">Musa</span>
       </div>
       <nav className="sidebar-nav">
