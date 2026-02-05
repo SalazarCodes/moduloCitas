@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, CreditCard, Banknote, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, CreditCard, Banknote, FileText, Save } from 'lucide-react';
 import { TRATAMIENTOS } from '../constants/salonData';
 
 export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }) {
@@ -26,8 +26,25 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
         }];
     });
 
-    // Estado de precios: un valor por cada línea de tratamiento (usando key único)
+    // Clave única para localStorage basada en los IDs de las citas
+    const storageKey = `cobro_pendiente_${citasCliente.map(c => c.id).sort().join('_')}`;
+
+    // Estado de precios: cargar de localStorage si existe, sino inicializar vacío
     const [precios, setPrecios] = useState(() => {
+        const guardado = localStorage.getItem(storageKey);
+        if (guardado) {
+            try {
+                const parsed = JSON.parse(guardado);
+                // Verificar que las keys coincidan
+                const keysGuardadas = Object.keys(parsed.precios || {});
+                const keysActuales = tratamientos.map(t => t.key);
+                if (keysActuales.every(k => keysGuardadas.includes(k))) {
+                    return parsed.precios;
+                }
+            } catch (e) {
+                console.error('Error cargando precios guardados:', e);
+            }
+        }
         const inicial = {};
         tratamientos.forEach(t => {
             inicial[t.key] = '';
@@ -35,13 +52,44 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
         return inicial;
     });
 
-    const [metodoPago, setMetodoPago] = useState('Yape');
+    const [metodoPago, setMetodoPago] = useState(() => {
+        const guardado = localStorage.getItem(storageKey);
+        if (guardado) {
+            try {
+                const parsed = JSON.parse(guardado);
+                return parsed.metodoPago || 'Yape';
+            } catch (e) {
+                return 'Yape';
+            }
+        }
+        return 'Yape';
+    });
+
+    const [guardadoExitoso, setGuardadoExitoso] = useState(false);
 
     // Calcular subtotal sumando todos los precios ingresados
     const subtotal = Object.values(precios).reduce((suma, p) => suma + (parseFloat(p) || 0), 0);
 
     const actualizarPrecio = (key, valor) => {
         setPrecios(prev => ({ ...prev, [key]: valor }));
+        setGuardadoExitoso(false); // Resetear indicador al modificar
+    };
+
+    // Guardar precios para después
+    const guardarParaDespues = () => {
+        const datos = {
+            precios,
+            metodoPago,
+            fechaGuardado: new Date().toISOString()
+        };
+        localStorage.setItem(storageKey, JSON.stringify(datos));
+        setGuardadoExitoso(true);
+        setTimeout(() => setGuardadoExitoso(false), 2000);
+    };
+
+    // Limpiar precios guardados
+    const limpiarPreciosGuardados = () => {
+        localStorage.removeItem(storageKey);
     };
 
     const handleSubmit = (e) => {
@@ -67,6 +115,8 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
             }))
         };
 
+        // Limpiar precios guardados al confirmar pago
+        limpiarPreciosGuardados();
         onConfirmPayment(datosPago);
     };
 
@@ -363,7 +413,7 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
                     </div>
 
                     {/* Footer */}
-                    <div className="modal-footer" style={{ marginTop: '0' }}>
+                    <div className="modal-footer" style={{ marginTop: '0', flexWrap: 'wrap', gap: '8px' }}>
                         <button
                             type="button"
                             onClick={generarBoleta}
@@ -373,8 +423,21 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
                             <FileText size={18} style={{ marginRight: '5px' }} />
                             Boleta
                         </button>
+                        <button
+                            type="button"
+                            onClick={guardarParaDespues}
+                            className="btn"
+                            style={{
+                                backgroundColor: guardadoExitoso ? '#16a34a' : '#f59e0b',
+                                color: 'white',
+                                transition: 'background-color 0.3s'
+                            }}
+                        >
+                            <Save size={18} style={{ marginRight: '5px' }} />
+                            {guardadoExitoso ? 'Guardado!' : 'Guardar'}
+                        </button>
                         <button type="button" onClick={onClose} className="btn btn-secondary">
-                            Cancelar
+                            Cerrar
                         </button>
                         <button type="submit" className="btn btn-success" style={{ backgroundColor: '#10b981', color: 'white' }}>
                             <Banknote size={18} style={{ marginRight: '5px' }} />
