@@ -59,6 +59,14 @@ export const TRATAMIENTOS = [
     { id: 49, nombre: "Carboxterapia", duracion: 20, categoria: "Corporal" },
     { id: 50, nombre: "Maderoterapia", duracion: 40, categoria: "Corporal" },
     { id: 51, nombre: "Paquete", duracion: 60, categoria: "Corporal" },
+    { id: 52, nombre: "Peinado", duracion: 60, categoria: "Cabello" },
+    { id: 53, nombre: "Ampolla", duracion: 60, categoria: "Cabello" },
+    { id: 54, nombre: "Maquillaje", duracion: 60, categoria: "Cara" },
+    { id: 55, nombre: "Retiro rubber", duracion: 60, categoria: "Uñas" },
+    { id: 56, nombre: "Retiro gum gel", duracion: 60, categoria: "Uñas" },
+    { id: 57, nombre: "Retiro acrilico", duracion: 60, categoria: "Uñas" },
+    { id: 58, nombre: "Depilacion de axilas", duracion: 60, categoria: "Corporal" },
+    { id: 59, nombre: "Depilacion de piernas", duracion: 60, categoria: "Corporal" },
 ];
 
 export const HORARIO_INICIO = 11;
