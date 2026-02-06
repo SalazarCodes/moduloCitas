@@ -8,19 +8,23 @@ import MonthView from './calendar/MonthView';
 import Sidebar from './Sidebar';
 import HistorialPagos from './HistorialPagos';
 import HistorialCitas from './HistorialCitas';
+import HistorialGastos from './HistorialGastos';
 import React, { useState, useEffect } from 'react';
 import {
   obtenerCitas,
   obtenerClientes,
   obtenerAusencias,
   obtenerPagos,
+  obtenerGastos,
   guardarCita,
   guardarCliente,
   guardarAusencia,
+  guardarGasto,
   eliminarCita,
   cancelarCita,
   eliminarCliente,
   eliminarAusencia,
+  eliminarGasto,
   registrarPago,
   marcarCitasPagadas
 } from './services/citasService';
@@ -43,22 +47,25 @@ export default function SalonAppointmentSystem() {
   const [filterEstilistaId, setFilterEstilistaId] = useState('');
   const [moduloActivo, setModuloActivo] = useState('citas');
   const [pagos, setPagos] = useState([]);
+  const [gastos, setGastos] = useState([]);
 
   useEffect(() => {
     const cargarDatosIniciales = async () => {
       try {
         // Cargamos todo en paralelo para que sea más rápido
-        const [citasDB, clientesDB, ausenciasDB, pagosDB] = await Promise.all([
+        const [citasDB, clientesDB, ausenciasDB, pagosDB, gastosDB] = await Promise.all([
           obtenerCitas(),
           obtenerClientes(),
           obtenerAusencias(),
-          obtenerPagos()
+          obtenerPagos(),
+          obtenerGastos()
         ]);
 
         if (citasDB) setAppointments(citasDB);
         if (clientesDB) setClients(clientesDB);
         if (ausenciasDB) setUnavailabilities(ausenciasDB);
         if (pagosDB) setPagos(pagosDB);
+        if (gastosDB) setGastos(gastosDB);
 
         // El backup sigue siendo local por ahora
         const savedLastBackup = localStorage.getItem('salon_last_backup');
@@ -177,6 +184,37 @@ export default function SalonAppointmentSystem() {
 
       {moduloActivo === 'historial' && (
         <HistorialPagos pagos={pagos} />
+      )}
+
+      {moduloActivo === 'gastos' && (
+        <HistorialGastos
+          gastos={gastos}
+          onSaveGasto={async (gastoData) => {
+            try {
+              const gastoGuardado = await guardarGasto(gastoData);
+              setGastos(prev => {
+                const existe = prev.some(g => g.id === gastoGuardado.id);
+                if (existe) {
+                  return prev.map(g => g.id === gastoGuardado.id ? gastoGuardado : g);
+                } else {
+                  return [...prev, gastoGuardado];
+                }
+              });
+            } catch (error) {
+              console.error("Error al guardar gasto:", error);
+              alert("Error al guardar el gasto");
+            }
+          }}
+          onDeleteGasto={async (id) => {
+            try {
+              await eliminarGasto(id);
+              setGastos(prev => prev.filter(g => g.id !== id));
+            } catch (error) {
+              console.error("Error al eliminar gasto:", error);
+              alert("Error al eliminar el gasto");
+            }
+          }}
+        />
       )}
 
       {moduloActivo === 'citas' && (<>

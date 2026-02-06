@@ -1,11 +1,12 @@
 import React from 'react';
-import { Calendar, Receipt, ClipboardList } from 'lucide-react';
+import { Calendar, Receipt, ClipboardList, Wallet } from 'lucide-react';
 
 export default function Sidebar({ moduloActivo, onCambiarModulo }) {
   const items = [
     { id: 'citas', label: 'Citas', icon: Calendar },
     { id: 'historialCitas', label: 'Historial de Citas', icon: ClipboardList },
     { id: 'historial', label: 'Historial de Pagos', icon: Receipt },
+    { id: 'gastos', label: 'Historial de Gastos', icon: Wallet },
   ];
 
   return (

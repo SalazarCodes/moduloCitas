@@ -355,3 +355,75 @@ export const marcarCitasPagadas = async (citaIds) => {
         localStorage.setItem(KEYS.CITAS, JSON.stringify(citasActualizadas));
     }
 };
+
+// ==========================================
+// 5. GESTION DE GASTOS
+// ==========================================
+
+const GASTOS_KEY = 'salon_gastos';
+
+export const obtenerGastos = async () => {
+    if (USAR_SUPABASE) {
+        const { data, error } = await supabase
+            .from('gastos')
+            .select('*');
+        if (error) throw error;
+
+        return data.map(g => ({
+            ...g,
+            encargadaId: g.encargadaid || g.encargadaId
+        }));
+    } else {
+        return JSON.parse(localStorage.getItem(GASTOS_KEY) || '[]');
+    }
+};
+
+export const guardarGasto = async (gasto) => {
+    if (USAR_SUPABASE) {
+        const gastoBD = {
+            encargadaid: parseInt(gasto.encargadaId),
+            descripcion: gasto.descripcion,
+            monto: parseFloat(gasto.monto),
+            fecha: new Date(gasto.fecha).toISOString()
+        };
+
+        const esIdTemporal = gasto.id && gasto.id > 2000000000;
+        if (gasto.id && !esIdTemporal) {
+            gastoBD.id = gasto.id;
+        }
+
+        const { data, error } = await supabase
+            .from('gastos')
+            .upsert([gastoBD])
+            .select();
+        if (error) throw error;
+
+        const guardado = data[0];
+        return {
+            ...guardado,
+            encargadaId: guardado.encargadaid || guardado.encargadaId
+        };
+    } else {
+        const gastos = JSON.parse(localStorage.getItem(GASTOS_KEY) || '[]');
+        const index = gastos.findIndex(g => g.id === gasto.id);
+        if (index >= 0) {
+            gastos[index] = gasto;
+        } else {
+            if (!gasto.id) gasto.id = Date.now();
+            gastos.push(gasto);
+        }
+        localStorage.setItem(GASTOS_KEY, JSON.stringify(gastos));
+        return gasto;
+    }
+};
+
+export const eliminarGasto = async (id) => {
+    if (USAR_SUPABASE) {
+        const { error } = await supabase.from('gastos').delete().eq('id', id);
+        if (error) throw error;
+    } else {
+        const gastos = JSON.parse(localStorage.getItem(GASTOS_KEY) || '[]');
+        const nuevosGastos = gastos.filter(g => g.id !== id);
+        localStorage.setItem(GASTOS_KEY, JSON.stringify(nuevosGastos));
+    }
+};
