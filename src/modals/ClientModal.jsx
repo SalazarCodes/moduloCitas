@@ -7,10 +7,12 @@ export default function ClientModal({ clients, onClose, onSave, onDelete }) {
     const [formData, setFormData] = useState({ nombre: '', telefono: '', email: '', notas: '' });
     const [searchTerm, setSearchTerm] = useState('');
 
-    const filteredClients = clients.filter(client =>
-        client.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.telefono.includes(searchTerm)
-    );
+    const filteredClients = clients
+        .filter(client =>
+            client.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            client.telefono.includes(searchTerm)
+        )
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 
     const handleSubmit = (e) => {
         e.preventDefault();

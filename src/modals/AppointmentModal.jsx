@@ -284,7 +284,7 @@ export default function AppointmentModal({ appointment, appointments, onClose, o
                                         required
                                     >
                                         <option value="">Seleccionar cliente</option>
-                                        {clients.map(client => (
+                                        {[...clients].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map(client => (
                                             <option key={client.id} value={client.id}>{client.nombre}</option>
                                         ))}
                                     </select>
