@@ -43,13 +43,6 @@ export default function HistorialGastos({ gastos, onSaveGasto, onDeleteGasto }) 
     });
   };
 
-  const formatHora = (date) => {
-    return date.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const handleNuevoGasto = () => {
     setEditingGasto(null);
     setShowModal(true);
@@ -125,7 +118,6 @@ export default function HistorialGastos({ gastos, onSaveGasto, onDeleteGasto }) 
             <thead>
               <tr>
                 <th>Fecha</th>
-                <th>Hora</th>
                 <th>Encargada</th>
                 <th>Descripción</th>
                 <th>Monto</th>
@@ -139,7 +131,6 @@ export default function HistorialGastos({ gastos, onSaveGasto, onDeleteGasto }) 
                   style={{ cursor: 'pointer' }}
                 >
                   <td>{formatFecha(gasto.fechaFormateada)}</td>
-                  <td>{formatHora(gasto.fechaFormateada)}</td>
                   <td>
                     <span
                       className="estilista-badge"

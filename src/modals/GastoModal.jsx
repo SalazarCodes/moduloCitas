@@ -8,8 +8,8 @@ export default function GastoModal({ gasto, onClose, onSave, onDelete }) {
     descripcion: gasto?.descripcion || '',
     monto: gasto?.monto || '',
     fecha: gasto?.fecha
-      ? new Date(gasto.fecha).toISOString().slice(0, 16)
-      : new Date().toISOString().slice(0, 16)
+      ? new Date(gasto.fecha).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10)
   });
 
   const handleChange = (e) => {
@@ -92,9 +92,9 @@ export default function GastoModal({ gasto, onClose, onSave, onDelete }) {
           </div>
 
           <div className="form-group">
-            <label>Fecha y Hora</label>
+            <label>Fecha</label>
             <input
-              type="datetime-local"
+              type="date"
               name="fecha"
               value={formData.fecha}
               onChange={handleChange}
