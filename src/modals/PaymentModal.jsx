@@ -156,6 +156,8 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
                         margin: 0;
                         padding: 0;
                         box-sizing: border-box;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
                     }
                     body {
                         font-family: 'Courier New', monospace;
@@ -163,6 +165,8 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
                         width: 58mm;
                         padding: 3mm;
                         background: white;
+                        color: #000;
+                        font-weight: 500;
                     }
                     .header {
                         text-align: center;
@@ -172,26 +176,28 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
                     }
                     .logo {
                         font-size: 18px;
-                        font-weight: bold;
+                        font-weight: 900;
                         letter-spacing: 3px;
                     }
                     .subtitle {
                         font-size: 9px;
                         margin-top: 4px;
-                        color: #555;
+                        color: #000;
+                        font-weight: 500;
                     }
                     .nota-tipo {
                         font-size: 11px;
-                        font-weight: bold;
+                        font-weight: 700;
                         margin-top: 6px;
                         padding: 3px;
                         border: 1px solid #000;
                         display: inline-block;
                     }
                     .fecha {
-                        font-size: 8px;
+                        font-size: 9px;
                         margin-top: 6px;
-                        color: #666;
+                        color: #000;
+                        font-weight: 500;
                     }
                     .items {
                         margin: 10px 0;
@@ -199,25 +205,27 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
                     .item {
                         margin-bottom: 8px;
                         padding-bottom: 6px;
-                        border-bottom: 1px dotted #ccc;
+                        border-bottom: 1px dotted #000;
                     }
                     .item:last-child {
                         border-bottom: none;
                     }
                     .item-categoria {
-                        font-size: 7px;
+                        font-size: 8px;
                         text-transform: uppercase;
-                        color: #666;
+                        color: #000;
                         letter-spacing: 0.5px;
+                        font-weight: 500;
                     }
                     .item-nombre {
-                        font-size: 9px;
-                        font-weight: bold;
+                        font-size: 10px;
+                        font-weight: 700;
                         margin: 2px 0;
                     }
                     .item-precio {
                         font-size: 10px;
                         text-align: right;
+                        font-weight: 600;
                     }
                     .total-section {
                         border-top: 1px dashed #000;
@@ -228,26 +236,29 @@ export default function PaymentModal({ citasCliente, onClose, onConfirmPayment }
                         display: flex;
                         justify-content: space-between;
                         font-size: 12px;
-                        font-weight: bold;
+                        font-weight: 900;
                     }
                     .metodo-pago {
                         font-size: 9px;
                         text-align: right;
                         margin-top: 4px;
-                        color: #555;
+                        color: #000;
+                        font-weight: 500;
                     }
                     .footer {
                         text-align: center;
                         margin-top: 12px;
                         padding-top: 8px;
                         border-top: 1px dashed #000;
-                        font-size: 8px;
-                        color: #666;
+                        font-size: 9px;
+                        color: #000;
+                        font-weight: 500;
                     }
                     .no-valor {
-                        font-size: 7px;
+                        font-size: 8px;
                         margin-top: 6px;
-                        color: #999;
+                        color: #000;
+                        font-weight: 400;
                     }
                     @media print {
                         body {
