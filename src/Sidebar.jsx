@@ -12,8 +12,8 @@ export default function Sidebar({ moduloActivo, onCambiarModulo }) {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <img src="/images/logo.png" alt="Musa Logo" className="sidebar-logo-img" />
-        <span className="sidebar-title">Musa</span>
+        <img src="/images/lunaria.png" alt="Lunaria Logo" className="sidebar-logo-img" />
+        <span className="sidebar-title">Lunaria</span>
       </div>
       <nav className="sidebar-nav">
         {items.map(item => {
